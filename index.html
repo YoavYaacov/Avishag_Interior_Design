@@ -1,1 +1,46 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>מערכת ניהול לקוחות - אבישג עיצוב פנים</title>
+    <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
 
+    <!-- מסך התחברות -->
+    <div id="login-view" class="center-screen">
+        <div class="card">
+            <h1>מערכת ניהול לקוחות</h1>
+            <p class="subtitle">אבישג · עיצוב פנים</p>
+            <form id="login-form">
+                <label for="email">אימייל</label>
+                <input type="email" id="email" required autocomplete="username" />
+                <label for="password">סיסמה</label>
+                <input type="password" id="password" required autocomplete="current-password" />
+                <p id="login-error" class="error-text"></p>
+                <button type="submit">התחברות</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- דשבורד / בדיקת חיבור -->
+    <div id="dashboard-view" class="hidden">
+        <header class="top-bar">
+            <h1>מערכת ניהול לקוחות</h1>
+            <div class="user-info">
+                <span id="user-email"></span>
+                <button id="logout-btn">התנתקות</button>
+            </div>
+        </header>
+        <main>
+            <p id="status-message">בודקת חיבור...</p>
+            <div id="status-grid" class="status-grid"></div>
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/config.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
