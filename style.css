@@ -1,0 +1,170 @@
+@import url('https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@500;700&family=Assistant:wght@400;600&display=swap');
+
+:root {
+    --stone-50: #f7f5f1;
+    --stone-100: #ece7de;
+    --stone-800: #33302a;
+    --sage: #6b7d63;
+    --sage-dark: #4f5e49;
+    --rust: #a8583f;
+    --ok: #4f5e49;
+    --error: #a8583f;
+}
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--stone-50);
+    color: var(--stone-800);
+    font-family: 'Assistant', sans-serif;
+    direction: rtl;
+}
+
+.hidden { display: none !important; }
+
+.center-screen {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+}
+
+.card {
+    background: #fff;
+    border: 1px solid var(--stone-100);
+    border-radius: 4px;
+    padding: 40px;
+    width: 100%;
+    max-width: 380px;
+    box-shadow: 0 1px 3px rgba(51, 48, 42, 0.06);
+}
+
+h1 {
+    font-family: 'Frank Ruhl Libre', serif;
+    font-weight: 700;
+    font-size: 1.6rem;
+    margin: 0 0 4px;
+}
+
+.subtitle {
+    color: #7a7568;
+    font-size: 0.92rem;
+    margin: 0 0 28px;
+}
+
+label {
+    display: block;
+    font-size: 0.85rem;
+    margin-bottom: 6px;
+    color: #57534a;
+}
+
+input {
+    width: 100%;
+    padding: 11px 12px;
+    margin-bottom: 18px;
+    border: 1px solid var(--stone-100);
+    border-radius: 3px;
+    font-family: inherit;
+    font-size: 0.95rem;
+    background: var(--stone-50);
+}
+
+input:focus {
+    outline: 2px solid var(--sage);
+    outline-offset: 1px;
+}
+
+button {
+    width: 100%;
+    padding: 12px;
+    background: var(--sage-dark);
+    color: #fff;
+    border: none;
+    border-radius: 3px;
+    font-family: inherit;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+button:hover { background: var(--sage); }
+
+.error-text {
+    color: var(--error);
+    font-size: 0.85rem;
+    margin-top: -8px;
+    margin-bottom: 12px;
+    min-height: 1em;
+}
+
+header.top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 32px;
+    border-bottom: 1px solid var(--stone-100);
+    background: #fff;
+}
+
+header.top-bar h1 { font-size: 1.2rem; margin: 0; }
+
+.top-bar .user-info {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    font-size: 0.85rem;
+    color: #7a7568;
+}
+
+.top-bar button {
+    width: auto;
+    padding: 7px 16px;
+    background: transparent;
+    color: var(--rust);
+    border: 1px solid var(--stone-100);
+}
+
+.top-bar button:hover { background: var(--stone-50); }
+
+main {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px 24px;
+}
+
+#status-message {
+    font-size: 0.95rem;
+    margin-bottom: 24px;
+    color: #57534a;
+}
+
+.status-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 10px;
+}
+
+.status-card {
+    border: 1px solid var(--stone-100);
+    border-radius: 3px;
+    padding: 14px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.85rem;
+    background: #fff;
+}
+
+.status-card .table-name {
+    font-weight: 600;
+    font-family: monospace;
+    direction: ltr;
+}
+
+.status-card.ok .table-state { color: var(--ok); }
+.status-card.error .table-state { color: var(--error); }
+.status-card.pending .table-state { color: #a39d8f; }
