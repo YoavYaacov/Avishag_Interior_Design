@@ -26,7 +26,7 @@ async function loadLeadsView() {
 
 function renderLeadsTable() {
     if (leadsCache.length === 0) {
-        leadsTableContainer.innerHTML = `<p class="muted">אין עדיין פניות. לחצי על "ליד חדש" כדי להתחיל.</p>`;
+        leadsTableContainer.innerHTML = `<p class="muted">אין עדיין פניות. לחצי על "פנייה חדשה" כדי להתחיל.</p>`;
         return;
     }
 
@@ -96,7 +96,7 @@ async function setLeadStatus(id, status) {
 
 newLeadBtn.addEventListener("click", () => openLeadForm(null));
 
-// ---------- טופס ליד (יצירה/עריכה) ----------
+// ---------- טופס פנייה (יצירה/עריכה) ----------
 
 function openLeadForm(existingLead) {
     const isEdit = !!existingLead;
@@ -107,7 +107,7 @@ function openLeadForm(existingLead) {
     ).join("");
 
     openModal(`
-        <h2>${isEdit ? "עריכת ליד" : "ליד חדש"}</h2>
+        <h2>${isEdit ? "עריכת פנייה" : "פנייה חדשה"}</h2>
         <form id="lead-form">
             <label for="lead-full-name">שם מלא *</label>
             <input type="text" id="lead-full-name" required value="${escapeHtml(l.full_name)}" />
@@ -141,7 +141,7 @@ function openLeadForm(existingLead) {
     phoneInput.addEventListener("blur", async () => {
         const dup = await findPhoneDuplicate(phoneInput.value, { excludeLeadId: l.id });
         if (dup) {
-            const where = dup.type === "lead" ? "ליד קיים" : "לקוח קיים";
+            const where = dup.type === "lead" ? "פנייה קיימת" : "לקוח קיים";
             warningEl.textContent = `⚠ הטלפון הזה כבר קיים במערכת (${where}: ${dup.record.full_name}, סטטוס: ${dup.record.status}). ניתן להמשיך וליצור בכל זאת.`;
             warningEl.classList.remove("hidden");
         } else {
@@ -168,11 +168,11 @@ function openLeadForm(existingLead) {
         }
 
         if (error) {
-            showToast("שגיאה בשמירת הליד", "error");
+            showToast("שגיאה בשמירת הפנייה", "error");
             return;
         }
 
-        showToast(isEdit ? "הליד עודכן" : "הליד נוצר", "ok");
+        showToast(isEdit ? "הפנייה עודכנה" : "הפנייה נוצרה", "ok");
         closeModal();
         loadLeadsView();
     });
@@ -182,11 +182,11 @@ document.getElementById("modal-overlay").addEventListener("click", (e) => {
     if (e.target.closest('[data-action="close-modal"]')) closeModal();
 });
 
-// ---------- המרת ליד ללקוח ----------
+// ---------- המרת פנייה ללקוח ----------
 
 function openConvertToClientForm(lead) {
     openModal(`
-        <h2>המרת ליד ללקוח</h2>
+        <h2>המרת פנייה ללקוח</h2>
         <p class="muted">נוצרת רשומת לקוח חדשה. פרטי הבית, הסגנון והמסלול יתווספו בהמשך לאחר פגישת הייעוץ.</p>
         <form id="convert-form">
             <label for="client-full-name">שם מלא *</label>
@@ -238,9 +238,9 @@ function openConvertToClientForm(lead) {
             .eq("id", lead.id);
 
         if (updateError) {
-            showToast("הלקוח נוצר, אך עדכון הליד נכשל", "error");
+            showToast("הלקוח נוצר, אך עדכון הפנייה נכשל", "error");
         } else {
-            showToast("הליד הומר ללקוח בהצלחה", "ok");
+            showToast("הפנייה הומרה ללקוח בהצלחה", "ok");
         }
 
         closeModal();
