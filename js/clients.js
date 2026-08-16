@@ -128,12 +128,12 @@ const HOME_FIXED_SPACES = [
 const BEDROOM_TYPES = ["הורים", "רגיל"];
 const BATHROOM_TYPES = ["הורים (מקלחון)", "ילדים/משפחתי (אמבט)", "אחר"];
 
-function parseJSONField(raw, fallback) {
-    if (!raw) return fallback;
+function parseJSONField(raw, makeEmpty, wrapLegacyText) {
+    if (!raw) return makeEmpty();
     try {
         return JSON.parse(raw);
     } catch {
-        return fallback(raw); // legacy plain-text value -> preserved inside the new structure
+        return wrapLegacyText(raw); // legacy plain-text value -> preserved inside the new structure
     }
 }
 
@@ -218,9 +218,9 @@ function backToClientsList() {
 
 function renderClientDetail() {
     const c = currentClient;
-    const roomTypes = parseJSONField(c.room_types, (raw) => ({ ...emptyRoomTypes(), other: [raw] }));
-    const familyTraits = parseJSONField(c.family_traits, (raw) => ({ ...emptyFamilyTraits(), notes: raw }));
-    const preferredStyle = parseJSONField(c.preferred_style, (raw) => ({ ...emptyPreferredStyle(), notes: raw }));
+    const roomTypes = parseJSONField(c.room_types, emptyRoomTypes, (raw) => ({ ...emptyRoomTypes(), other: [raw] }));
+    const familyTraits = parseJSONField(c.family_traits, emptyFamilyTraits, (raw) => ({ ...emptyFamilyTraits(), notes: raw }));
+    const preferredStyle = parseJSONField(c.preferred_style, emptyPreferredStyle, (raw) => ({ ...emptyPreferredStyle(), notes: raw }));
 
     clientDetailView.innerHTML = `
         <div class="detail-header">
