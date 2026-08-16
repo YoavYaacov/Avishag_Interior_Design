@@ -195,6 +195,7 @@ function summarizeStyle(st) {
 }
 
 async function openClientDetail(id) {
+    await ensureTracksLoaded();
     const { data, error } = await client.from("clients").select("*").eq("id", id).single();
     if (error) {
         showToast("שגיאה בטעינת כרטיס הלקוח", "error");
@@ -232,10 +233,61 @@ function renderClientDetail() {
         ${renderBasicSection(c)}
         ${renderStatusSection(c)}
         ${renderHomeSection(c, roomTypes, familyTraits, preferredStyle)}
+        ${renderTrackSection(c)}
+    `;
+}
 
-        <section class="detail-section muted-section">
+// ---------- מסלול ותמחור ----------
+
+function renderTrackSection(c) {
+    const editing = editingSections.has("track");
+
+    if (!editing) {
+        const track = tracksCache.find((t) => t.id === c.track_id);
+        const priceDisplay = c.total_project_price
+            ? `₪${Number(c.total_project_price).toLocaleString("he-IL")}`
+            : "-";
+
+        return `
+            <section class="detail-section">
+                <div class="section-header">
+                    <h3>מסלול ותמחור</h3>
+                    <button class="btn-small btn-ghost" data-action="edit-track">עריכה</button>
+                </div>
+                <div class="detail-grid">
+                    <div><span class="detail-label">מסלול</span><span>${escapeHtml(track ? track.name : "טרם נבחר מסלול")}</span></div>
+                    <div><span class="detail-label">מחיר כולל</span><span>${priceDisplay}</span></div>
+                    <div class="span-2"><span class="detail-label">הערות/דיוקים למסלול</span><span>${escapeHtml(c.track_notes || "-")}</span></div>
+                </div>
+            </section>
+        `;
+    }
+
+    const trackOptions = tracksCache.map(
+        (t) => `<option value="${t.id}" ${c.track_id === t.id ? "selected" : ""}>${escapeHtml(t.name)}</option>`
+    ).join("");
+
+    return `
+        <section class="detail-section">
             <h3>מסלול ותמחור</h3>
-            <p class="muted">ייקבע בשלב 3 - בחירת מסלול וסטטוסים.</p>
+            <form id="track-form">
+                <label for="track-select">מסלול</label>
+                <select id="track-select">
+                    <option value="">לא נבחר</option>
+                    ${trackOptions}
+                </select>
+
+                <label for="track-price">מחיר כולל שסוכם (₪)</label>
+                <input type="number" id="track-price" min="0" step="1" value="${c.total_project_price ?? ""}" />
+
+                <label for="track-notes-input">הערות/דיוקים למסלול</label>
+                <textarea id="track-notes-input" rows="3" placeholder="לדוגמה: יום רכישות נוסף בתשלום">${escapeHtml(c.track_notes || "")}</textarea>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn-ghost" data-action="cancel-track">ביטול</button>
+                    <button type="submit" class="btn-primary">שמירה</button>
+                </div>
+            </form>
         </section>
     `;
 }
@@ -484,6 +536,9 @@ clientDetailView.addEventListener("click", async (e) => {
     if (action === "edit-home") { editingSections.add("home"); homeDraft = null; return renderClientDetail(); }
     if (action === "cancel-home") { editingSections.delete("home"); homeDraft = null; return renderClientDetail(); }
 
+    if (action === "edit-track") { await ensureTracksLoaded(); editingSections.add("track"); return renderClientDetail(); }
+    if (action === "cancel-track") { editingSections.delete("track"); return renderClientDetail(); }
+
     if (action === "add-bedroom") {
         homeDraft.room_types.bedrooms.push({ type: "רגיל", walk_in_closet: false });
         return renderClientDetail();
@@ -580,6 +635,21 @@ clientDetailView.addEventListener("submit", async (e) => {
         showToast("הסטטוס עודכן", "ok");
         renderClientDetail();
         loadClientsListView();
+    }
+
+    if (e.target.id === "track-form") {
+        const priceRaw = document.getElementById("track-price").value;
+        const payload = {
+            track_id: document.getElementById("track-select").value || null,
+            total_project_price: priceRaw === "" ? null : Number(priceRaw),
+            track_notes: document.getElementById("track-notes-input").value.trim() || null,
+        };
+        const { error } = await client.from("clients").update(payload).eq("id", currentClient.id);
+        if (error) { showToast("שגיאה בשמירה", "error"); return; }
+        Object.assign(currentClient, payload);
+        editingSections.delete("track");
+        showToast("פרטי המסלול נשמרו", "ok");
+        renderClientDetail();
     }
 });
 
