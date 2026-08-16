@@ -37,6 +37,7 @@
         <nav class="main-nav">
             <button class="nav-btn active" data-view="leads">פניות</button>
             <button class="nav-btn" data-view="clients">לקוחות</button>
+            <button class="nav-btn" data-view="tracks">מסלולים</button>
             <button class="nav-btn" data-view="diagnostics">בדיקת מערכת</button>
         </nav>
 
@@ -66,6 +67,15 @@
                 <div id="client-detail-view" class="hidden"></div>
             </section>
 
+            <!-- ===== מסלולים (TRACKS) ===== -->
+            <section id="tracks-view" class="app-view hidden">
+                <div class="view-header">
+                    <h2>מסלולים</h2>
+                    <button id="new-track-btn" class="btn-primary">+ מסלול חדש</button>
+                </div>
+                <div id="tracks-table-container"></div>
+            </section>
+
             <!-- ===== בדיקת מערכת (קיים) ===== -->
             <section id="diagnostics-view" class="app-view hidden">
                 <p id="status-message">בודקת חיבור...</p>
@@ -85,6 +95,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/config.js"></script>
     <script src="js/app.js"></script>
+    <script src="js/tracks.js"></script>
     <script src="js/leads.js"></script>
     <script src="js/clients.js"></script>
 </body>
