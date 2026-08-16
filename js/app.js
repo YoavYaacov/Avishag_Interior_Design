@@ -132,6 +132,24 @@ modalOverlay.addEventListener("click", (e) => {
     if (e.target === modalOverlay) closeModal();
 });
 
+// ---------- מודאל אישור כללי ----------
+
+function openConfirmModal(message, onConfirm) {
+    openModal(`
+        <h2>אישור פעולה</h2>
+        <p>${escapeHtml(message)}</p>
+        <div class="modal-actions">
+            <button type="button" class="btn-ghost" data-action="close-modal">ביטול</button>
+            <button type="button" class="btn-primary" id="confirm-modal-btn">כן, להעביר</button>
+        </div>
+    `);
+
+    document.getElementById("confirm-modal-btn").addEventListener("click", async () => {
+        closeModal();
+        await onConfirm();
+    });
+}
+
 // ---------- טוסט ----------
 
 let toastTimer = null;
