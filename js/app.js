@@ -105,6 +105,7 @@ function switchView(viewName) {
 
     if (viewName === "leads") loadLeadsView();
     if (viewName === "clients") loadClientsListView();
+    if (viewName === "tracks") loadTracksView();
     if (viewName === "diagnostics") runConnectionTest();
 }
 
