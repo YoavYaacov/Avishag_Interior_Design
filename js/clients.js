@@ -69,7 +69,16 @@ function renderClientsTable() {
         <tr class="table-row clickable-row" data-action="open-client" data-id="${c.id}">
             <td>${escapeHtml(c.full_name)}</td>
             <td><span class="${statusBadgeClass(c.status)}">${escapeHtml(c.status)}</span></td>
-            <td><span class="${courtBadgeClass(c.ball_in_court)}">${escapeHtml(c.ball_in_court)}</span></td>
+            <td>
+                <button
+                    type="button"
+                    class="court-toggle ${courtBadgeClass(c.ball_in_court)}"
+                    data-action="toggle-court"
+                    data-id="${c.id}"
+                    data-current="${escapeHtml(c.ball_in_court)}"
+                    title="לחצי כדי להעביר את הכדור"
+                >${escapeHtml(c.ball_in_court)} ⇄</button>
+            </td>
             <td>${formatDate(leadContactDateMap[c.id] || c.created_at)}</td>
         </tr>
     `).join("");
@@ -99,6 +108,26 @@ clientsTableContainer.addEventListener("click", (e) => {
             clientsSort = { column: col, direction: "asc" };
         }
         renderClientsTable();
+        return;
+    }
+
+    const courtBtn = e.target.closest('[data-action="toggle-court"]');
+    if (courtBtn) {
+        const id = courtBtn.dataset.id;
+        const current = courtBtn.dataset.current;
+        const next = current === BALL_IN_COURT.AVISHAG ? BALL_IN_COURT.CLIENT : BALL_IN_COURT.AVISHAG;
+
+        openConfirmModal(`האם את בטוחה שברצונך להעביר את הכדור מ"${current}" ל"${next}"?`, async () => {
+            const { error } = await client.from("clients").update({ ball_in_court: next }).eq("id", id);
+            if (error) {
+                showToast("שגיאה בעדכון אצל מי הכדור", "error");
+                return;
+            }
+            const clientRow = clientsCache.find((cl) => cl.id === id);
+            if (clientRow) clientRow.ball_in_court = next;
+            showToast("הכדור הועבר", "ok");
+            renderClientsTable();
+        });
         return;
     }
 
