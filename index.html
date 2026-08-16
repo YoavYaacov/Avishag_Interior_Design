@@ -24,7 +24,7 @@
         </div>
     </div>
 
-    <!-- דשבורד / בדיקת חיבור -->
+    <!-- אפליקציה ראשית -->
     <div id="dashboard-view" class="hidden">
         <header class="top-bar">
             <h1>מערכת ניהול לקוחות</h1>
@@ -33,14 +33,59 @@
                 <button id="logout-btn">התנתקות</button>
             </div>
         </header>
+
+        <nav class="main-nav">
+            <button class="nav-btn active" data-view="leads">פניות</button>
+            <button class="nav-btn" data-view="clients">לקוחות</button>
+            <button class="nav-btn" data-view="diagnostics">בדיקת מערכת</button>
+        </nav>
+
         <main>
-            <p id="status-message">בודקת חיבור...</p>
-            <div id="status-grid" class="status-grid"></div>
+            <!-- ===== פניות (LEADS) ===== -->
+            <section id="leads-view" class="app-view">
+                <div class="view-header">
+                    <h2>פניות</h2>
+                    <button id="new-lead-btn" class="btn-primary">+ ליד חדש</button>
+                </div>
+                <div id="leads-table-container"></div>
+            </section>
+
+            <!-- ===== לקוחות (CLIENTS) ===== -->
+            <section id="clients-view" class="app-view hidden">
+
+                <!-- תצוגת רשימה -->
+                <div id="clients-list-view">
+                    <div class="view-header">
+                        <h2>לקוחות</h2>
+                        <input type="text" id="clients-search" placeholder="חיפוש לפי שם..." class="search-input" />
+                    </div>
+                    <div id="clients-table-container"></div>
+                </div>
+
+                <!-- תצוגת כרטיס לקוח -->
+                <div id="client-detail-view" class="hidden"></div>
+            </section>
+
+            <!-- ===== בדיקת מערכת (קיים) ===== -->
+            <section id="diagnostics-view" class="app-view hidden">
+                <p id="status-message">בודקת חיבור...</p>
+                <div id="status-grid" class="status-grid"></div>
+            </section>
         </main>
     </div>
+
+    <!-- מודאל כללי -->
+    <div id="modal-overlay" class="modal-overlay hidden">
+        <div class="modal-box" id="modal-box"></div>
+    </div>
+
+    <!-- הודעת טוסט -->
+    <div id="toast" class="toast hidden"></div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/config.js"></script>
     <script src="js/app.js"></script>
+    <script src="js/leads.js"></script>
+    <script src="js/clients.js"></script>
 </body>
 </html>
