@@ -305,6 +305,12 @@ main {
 .badge-court-avishag { background: #e7ede4; color: var(--sage-dark); }
 .badge-court-client { background: #f0ddd4; color: var(--rust); }
 
+.court-toggle {
+    cursor: pointer;
+    transition: filter 0.1s ease;
+}
+.court-toggle:hover { filter: brightness(0.93); }
+
 /* ---------- מודאל ---------- */
 
 .modal-overlay {
