@@ -26,6 +26,7 @@ const CLIENT_STATUSES = [
     "לקראת מסירה",
     "הושלם - ממתין לתמונות סיום",
     "סגור/ארכיון",
+    "ויתר",
 ];
 
 const BALL_IN_COURT = { AVISHAG: "אבישג", CLIENT: "לקוח" };
@@ -106,6 +107,7 @@ function switchView(viewName) {
     if (viewName === "leads") loadLeadsView();
     if (viewName === "clients") loadClientsListView();
     if (viewName === "tracks") loadTracksView();
+    if (viewName === "tasks") loadTasksView();
     if (viewName === "diagnostics") runConnectionTest();
 }
 
@@ -134,13 +136,13 @@ modalOverlay.addEventListener("click", (e) => {
 
 // ---------- מודאל אישור כללי ----------
 
-function openConfirmModal(message, onConfirm) {
+function openConfirmModal(message, onConfirm, confirmLabel = "אישור") {
     openModal(`
         <h2>אישור פעולה</h2>
         <p>${escapeHtml(message)}</p>
         <div class="modal-actions">
             <button type="button" class="btn-ghost" data-action="close-modal">ביטול</button>
-            <button type="button" class="btn-primary" id="confirm-modal-btn">כן, להעביר</button>
+            <button type="button" class="btn-primary" id="confirm-modal-btn">${escapeHtml(confirmLabel)}</button>
         </div>
     `);
 
