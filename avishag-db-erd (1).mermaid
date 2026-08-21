@@ -1,0 +1,159 @@
+erDiagram
+
+    LEADS ||--o| CLIENTS : "הופך ל"
+    TRACKS ||--o{ CLIENTS : "נבחר על ידי"
+    TRACKS ||--o{ TASK_TEMPLATES : "מגדיר"
+    CLIENTS ||--o{ TASKS : "כולל"
+    CLIENTS ||--o{ PAYMENTS : "כולל"
+    CLIENTS ||--o{ COMMISSION_INCOME : "כולל"
+    CLIENTS ||--o| MEETING_SUMMARY : "כולל"
+    MEETING_SUMMARY ||--o{ ADDENDUMS : "כולל"
+    CLIENTS ||--o{ QUOTES : "כולל"
+    CLIENTS ||--o{ PHOTOS : "כולל"
+    CLIENTS ||--o{ CALENDAR_EVENTS : "כולל"
+    CLIENTS ||--o{ CLIENT_SUPPLIERS : "משתמש ב"
+    SUPPLIERS ||--o{ CLIENT_SUPPLIERS : "מקושר ל"
+
+    LEADS {
+        uuid id PK
+        string full_name "שם מלא"
+        string phone "טלפון"
+        date contact_date "תאריך פנייה"
+        string source "מקור הפנייה"
+        text notes "הערות"
+        string status "פתוח / הומר ללקוח / לא רלוונטי"
+        uuid converted_client_id FK "מולא ברגע ההמרה ל-CLIENTS"
+    }
+
+    TRACKS {
+        uuid id PK
+        string name "הום סטיילינג / ליווי ממוקד / ליווי מלא"
+        text description "תיאור כללי של המסלול"
+    }
+
+    TASK_TEMPLATES {
+        uuid id PK
+        uuid track_id FK
+        string stage_name "שם שלב"
+        string task_name "שם המשימה"
+        int order_index "סדר בתהליך"
+    }
+
+    CLIENTS {
+        uuid id PK
+        string full_name "שם מלא"
+        string phone "טלפון"
+        string email "מייל"
+        string address "כתובת הבית"
+        int household_members "מספר נפשות בבית"
+        int rooms_count "מספר חללים לעיצוב"
+        text room_types "פירוט סוג החללים"
+        text family_traits "אופי משפחתי (כלב, ילדים, מארחים וכו)"
+        text preferred_style "סגנון עיצובי מועדף"
+        text color_materials "גוונים וחומריות"
+        uuid track_id FK "מסלול נבחר"
+        text track_notes "הערות/דיוקים למסלול"
+        decimal total_project_price "סכום כולל שסוכם - בסיס לחישוב פעימות התשלום"
+        string status "סטטוס פרויקט - רשימה סגורה, מתחיל מ'נקבעה פגישת ייעוץ'"
+        string ball_in_court "אצל מי הכדור: אבישג / לקוח"
+        date created_at "תאריך יצירת רשומת הלקוח (=נקבעה פגישה)"
+        date closed_at "תאריך סגירה"
+        boolean satisfaction_placeholder "טרם הוגדר - לעתיד"
+    }
+
+    TASKS {
+        uuid id PK
+        uuid client_id FK
+        string title "כותרת המשימה"
+        text description "פירוט"
+        date due_date "תאריך יעד"
+        boolean reminder_active "תזכורת פעילה"
+        string status "פתוח / הושלם"
+        string stage_source "מקור: תבנית מסלול או ידני"
+    }
+
+    %% ⚠️ הערה חשובה (21.8.2026): כשאבישג פותחת מסלול חדש דרך מסך "מסלולים",
+    %% צריך להחליט באותו רגע כמה פעימות תשלום יש לו ומה האחוז/סכום לכל פעימה
+    %% (בדומה להחלטה שכבר קיימת על תבנית המשימות של המסלול). ראו js/tracks.js.
+    PAYMENTS {
+        uuid id PK
+        uuid client_id FK
+        string phase_name "ייעוץ / מקדמה / עיקרי / סיום / תוספת (טקסט חופשי)"
+        string payment_type "contracted - תשלום חוזי / addon - תוספת מעבר לחוזה"
+        decimal amount "סכום - snapshot קבוע, לא נגזר דינמית מהמחיר הכולל"
+        decimal percent "אחוז מהעסקה, אם רלוונטי"
+        string status "שולם / ממתין / באיחור"
+        date paid_date "תאריך תשלום בפועל"
+        string invoice_doc_url "קישור לחשבונית/קבלה שהופקה"
+        text notes "הערות התקדמות - הבסיס להחלטה על איחור"
+    }
+
+    COMMISSION_INCOME {
+        uuid id PK
+        uuid client_id FK
+        string company_name "שם חברת העיצוב"
+        string branch_contact "איש קשר בסניף"
+        decimal deal_amount "סכום העסקה שנסגרה"
+        decimal commission_percent "אחוז העמלה - משתנה"
+        decimal commission_amount "סכום העמלה"
+        string status "ממתין / התקבל"
+    }
+
+    MEETING_SUMMARY {
+        uuid id PK
+        uuid client_id FK
+        text free_notes "הערות חופשיות מהפגישה"
+        string pdf_url "קובץ PDF ממותג"
+        date meeting_date "תאריך הפגישה"
+        int version "גרסה"
+    }
+
+    ADDENDUMS {
+        uuid id PK
+        uuid meeting_summary_id FK
+        text content "תוכן הנספח"
+        date created_at
+        string pdf_url
+    }
+
+    QUOTES {
+        uuid id PK
+        uuid client_id FK
+        text content "תוכן הצעת המחיר"
+        string pdf_url "מסמך עם לוגו ופרטי התקשרות"
+        date created_at
+    }
+
+    PHOTOS {
+        uuid id PK
+        uuid client_id FK
+        string type "consultation - מפגישת הייעוץ / result - תוצאה סופית"
+        string storage_url "כתובת בSupabase Storage"
+        boolean is_portfolio_featured "מסומן לתצוגה בפורטפוליו שיווקי"
+        date uploaded_at
+    }
+
+    SUPPLIERS {
+        uuid id PK
+        string name "שם הספק/קבלן"
+        string contact_person "איש קשר"
+        string phone
+        text price_notes "הערות מחירון"
+    }
+
+    CLIENT_SUPPLIERS {
+        uuid id PK
+        uuid client_id FK
+        uuid supplier_id FK
+        text notes "מה הוזמן / הערות"
+    }
+
+    CALENDAR_EVENTS {
+        uuid id PK
+        uuid client_id FK
+        string google_event_id "מזהה מול Google Calendar"
+        string title
+        datetime start_time
+        datetime end_time
+        string event_type "פגישת ייעוץ / מדידה / ביקור אתר"
+    }
