@@ -37,6 +37,7 @@
         <nav class="main-nav">
             <button class="nav-btn active" data-view="leads">פניות</button>
             <button class="nav-btn" data-view="clients">לקוחות</button>
+            <button class="nav-btn" data-view="tasks">משימות</button>
             <button class="nav-btn" data-view="tracks">מסלולים</button>
             <button class="nav-btn" data-view="diagnostics">בדיקת מערכת</button>
         </nav>
@@ -65,6 +66,14 @@
 
                 <!-- תצוגת כרטיס לקוח -->
                 <div id="client-detail-view" class="hidden"></div>
+            </section>
+
+            <!-- ===== משימות (TASKS) - חוצה-לקוחות ===== -->
+            <section id="tasks-view" class="app-view hidden">
+                <div class="view-header">
+                    <h2>משימות</h2>
+                </div>
+                <div id="tasks-table-container"></div>
             </section>
 
             <!-- ===== מסלולים (TRACKS) ===== -->
@@ -98,5 +107,6 @@
     <script src="js/tracks.js"></script>
     <script src="js/leads.js"></script>
     <script src="js/clients.js"></script>
+    <script src="js/tasks.js"></script>
 </body>
 </html>
