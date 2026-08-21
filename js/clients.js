@@ -127,7 +127,7 @@ clientsTableContainer.addEventListener("click", (e) => {
             if (clientRow) clientRow.ball_in_court = next;
             showToast("הכדור הועבר", "ok");
             renderClientsTable();
-        });
+        }, "כן, להעביר");
         return;
     }
 
@@ -222,6 +222,7 @@ async function openClientDetail(id) {
     currentClient = data;
     editingSections = new Set();
     homeDraft = null;
+    await loadCurrentClientTasks(id);
 
     clientsListView.classList.add("hidden");
     clientDetailView.classList.remove("hidden");
@@ -252,6 +253,7 @@ function renderClientDetail() {
         ${renderStatusSection(c)}
         ${renderHomeSection(c, roomTypes, familyTraits, preferredStyle)}
         ${renderTrackSection(c)}
+        ${renderClientTasksSection()}
     `;
 }
 
@@ -288,6 +290,7 @@ function renderTrackSection(c) {
     return `
         <section class="detail-section">
             <h3>מסלול ותמחור</h3>
+            <p class="warning-text">שינוי מסלול יחליף אוטומטית את כל המשימות הקיימות של הלקוח במשימות התבנית של המסלול החדש.</p>
             <form id="track-form">
                 <label for="track-select">מסלול</label>
                 <select id="track-select">
@@ -608,8 +611,11 @@ clientDetailView.addEventListener("submit", async (e) => {
 
     if (e.target.id === "track-form") {
         const priceRaw = document.getElementById("track-price").value;
+        const newTrackId = document.getElementById("track-select").value || null;
+        const trackChanged = newTrackId !== (currentClient.track_id || null);
+
         const payload = {
-            track_id: document.getElementById("track-select").value || null,
+            track_id: newTrackId,
             total_project_price: priceRaw === "" ? null : Number(priceRaw),
             track_notes: document.getElementById("track-notes-input").value.trim() || null,
         };
@@ -617,7 +623,14 @@ clientDetailView.addEventListener("submit", async (e) => {
         if (error) { showToast("שגיאה בשמירה", "error"); return; }
         Object.assign(currentClient, payload);
         editingSections.delete("track");
-        showToast("פרטי המסלול נשמרו", "ok");
+
+        if (trackChanged) {
+            await regenerateTasksForClient(currentClient.id, newTrackId);
+            await loadCurrentClientTasks(currentClient.id);
+            showToast("פרטי המסלול נשמרו והמשימות עודכנו בהתאם למסלול החדש", "ok");
+        } else {
+            showToast("פרטי המסלול נשמרו", "ok");
+        }
         renderClientDetail();
     }
 });
