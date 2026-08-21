@@ -146,16 +146,20 @@ let currentClient = null;
 let editingSections = new Set();
 let homeDraft = null;
 
+// חללי בית קבועים (ברירת מחדל: דירת 5 חדרים) - כל אחד checkbox פשוט.
+// ניתן להוסיף חללים נוספים בטקסט חופשי (ראה room_types.custom).
 const HOME_FIXED_SPACES = [
-    { key: "living_room", label: "סלון" },
     { key: "kitchen", label: "מטבח" },
-    { key: "office", label: "חדר עבודה" },
-    { key: "yard", label: "חצר/מרפסת" },
-    { key: "storage", label: "מחסן" },
+    { key: "living_room", label: "סלון" },
+    { key: "kids_bathroom", label: "מקלחת ילדים" },
+    { key: "parents_bathroom", label: "מקלחת הורים" },
+    { key: "laundry_room", label: "חדר כביסה" },
+    { key: "bedroom_1", label: "חדר שינה 1" },
+    { key: "bedroom_2", label: "חדר שינה 2" },
+    { key: "bedroom_3", label: "חדר שינה 3" },
+    { key: "parents_room", label: "חדר הורים" },
+    { key: "closet_room", label: "חדר ארונות" },
 ];
-
-const BEDROOM_TYPES = ["הורים", "רגיל"];
-const BATHROOM_TYPES = ["הורים (מקלחון)", "ילדים/משפחתי (אמבט)", "אחר"];
 
 function parseJSONField(raw, makeEmpty, wrapLegacyText) {
     if (!raw) return makeEmpty();
@@ -169,7 +173,7 @@ function parseJSONField(raw, makeEmpty, wrapLegacyText) {
 function emptyRoomTypes() {
     const fixed = {};
     HOME_FIXED_SPACES.forEach((s) => (fixed[s.key] = false));
-    return { fixed, bedrooms: [], bathrooms: [], other: [] };
+    return { fixed, custom: [] };
 }
 
 function emptyFamilyTraits() {
@@ -183,28 +187,13 @@ function emptyPreferredStyle() {
 function summarizeRoomTypes(rt) {
     const parts = [];
     HOME_FIXED_SPACES.forEach((s) => { if (rt.fixed[s.key]) parts.push(s.label); });
-    if (rt.bedrooms.length) {
-        const master = rt.bedrooms.filter((b) => b.type === "הורים").length;
-        const regular = rt.bedrooms.filter((b) => b.type === "רגיל").length;
-        const closets = rt.bedrooms.filter((b) => b.walk_in_closet).length;
-        let txt = `${rt.bedrooms.length} חדרי שינה`;
-        const detail = [];
-        if (master) detail.push(`${master} הורים`);
-        if (regular) detail.push(`${regular} רגילים`);
-        if (closets) detail.push(`${closets} עם חדר ארונות`);
-        if (detail.length) txt += ` (${detail.join(", ")})`;
-        parts.push(txt);
-    }
-    if (rt.bathrooms.length) {
-        parts.push(`${rt.bathrooms.length} חדרי רחצה (${rt.bathrooms.map((b) => b.type).join(", ")})`);
-    }
-    rt.other.forEach((o) => parts.push(o));
+    (rt.custom || []).forEach((c) => parts.push(c));
     return parts.length ? parts.join(" · ") : "טרם הוזן";
 }
 
 function countRooms(rt) {
     const fixedCount = HOME_FIXED_SPACES.filter((s) => rt.fixed[s.key]).length;
-    return fixedCount + rt.bedrooms.length + rt.bathrooms.length + rt.other.length;
+    return fixedCount + (rt.custom ? rt.custom.length : 0);
 }
 
 function summarizeFamilyTraits(ft) {
@@ -247,7 +236,7 @@ function backToClientsList() {
 
 function renderClientDetail() {
     const c = currentClient;
-    const roomTypes = parseJSONField(c.room_types, emptyRoomTypes, (raw) => ({ ...emptyRoomTypes(), other: [raw] }));
+    const roomTypes = parseJSONField(c.room_types, emptyRoomTypes, (raw) => ({ ...emptyRoomTypes(), custom: [raw] }));
     const familyTraits = parseJSONField(c.family_traits, emptyFamilyTraits, (raw) => ({ ...emptyFamilyTraits(), notes: raw }));
     const preferredStyle = parseJSONField(c.preferred_style, emptyPreferredStyle, (raw) => ({ ...emptyPreferredStyle(), notes: raw }));
 
@@ -443,32 +432,10 @@ function renderHomeSection(c, roomTypes, familyTraits, preferredStyle) {
         </label>
     `).join("");
 
-    const bedroomRows = homeDraft.room_types.bedrooms.map((b, i) => `
+    const customRows = homeDraft.room_types.custom.map((val, i) => `
         <div class="dynamic-row" data-index="${i}">
-            <select data-action="bedroom-type" data-index="${i}">
-                ${BEDROOM_TYPES.map((t) => `<option value="${t}" ${b.type === t ? "selected" : ""}>${t}</option>`).join("")}
-            </select>
-            <label class="checkbox-inline">
-                <input type="checkbox" data-action="bedroom-closet" data-index="${i}" ${b.walk_in_closet ? "checked" : ""} />
-                חדר ארונות
-            </label>
-            <button type="button" class="btn-icon" data-action="remove-bedroom" data-index="${i}">הסרה</button>
-        </div>
-    `).join("");
-
-    const bathroomRows = homeDraft.room_types.bathrooms.map((b, i) => `
-        <div class="dynamic-row" data-index="${i}">
-            <select data-action="bathroom-type" data-index="${i}">
-                ${BATHROOM_TYPES.map((t) => `<option value="${t}" ${b.type === t ? "selected" : ""}>${t}</option>`).join("")}
-            </select>
-            <button type="button" class="btn-icon" data-action="remove-bathroom" data-index="${i}">הסרה</button>
-        </div>
-    `).join("");
-
-    const otherRows = homeDraft.room_types.other.map((val, i) => `
-        <div class="dynamic-row" data-index="${i}">
-            <input type="text" data-action="other-space-text" data-index="${i}" value="${escapeHtml(val)}" placeholder="חלל נוסף..." />
-            <button type="button" class="btn-icon" data-action="remove-other-space" data-index="${i}">הסרה</button>
+            <input type="text" data-action="custom-space-text" data-index="${i}" value="${escapeHtml(val)}" placeholder="חלל נוסף..." />
+            <button type="button" class="btn-icon" data-action="remove-custom-space" data-index="${i}">הסרה</button>
         </div>
     `).join("");
 
@@ -486,20 +453,12 @@ function renderHomeSection(c, roomTypes, familyTraits, preferredStyle) {
                 <label for="home-members">מספר נפשות בבית</label>
                 <input type="number" id="home-members" min="0" value="${escapeHtml(homeDraft.household_members)}" />
 
-                <label class="block-label">חללים קבועים</label>
+                <label class="block-label">חללים</label>
                 <div class="pill-row">${fixedCheckboxes}</div>
 
-                <label class="block-label">חדרי שינה</label>
-                <div id="bedrooms-list">${bedroomRows}</div>
-                <button type="button" class="btn-small btn-ghost" data-action="add-bedroom">+ הוספת חדר שינה</button>
-
-                <label class="block-label">חדרי רחצה</label>
-                <div id="bathrooms-list">${bathroomRows}</div>
-                <button type="button" class="btn-small btn-ghost" data-action="add-bathroom">+ הוספת חדר רחצה</button>
-
-                <label class="block-label">חללים נוספים</label>
-                <div id="other-spaces-list">${otherRows}</div>
-                <button type="button" class="btn-small btn-ghost" data-action="add-other-space">+ הוספת חלל אחר</button>
+                <label class="block-label">חללים נוספים (טקסט חופשי)</label>
+                <div id="custom-spaces-list">${customRows}</div>
+                <button type="button" class="btn-small btn-ghost" data-action="add-custom-space">+ הוספת חלל</button>
 
                 <hr class="divider" />
 
@@ -568,28 +527,12 @@ clientDetailView.addEventListener("click", async (e) => {
     if (action === "edit-track") { await ensureTracksLoaded(); editingSections.add("track"); return renderClientDetail(); }
     if (action === "cancel-track") { editingSections.delete("track"); return renderClientDetail(); }
 
-    if (action === "add-bedroom") {
-        homeDraft.room_types.bedrooms.push({ type: "רגיל", walk_in_closet: false });
+    if (action === "add-custom-space") {
+        homeDraft.room_types.custom.push("");
         return renderClientDetail();
     }
-    if (action === "remove-bedroom") {
-        homeDraft.room_types.bedrooms.splice(Number(el.dataset.index), 1);
-        return renderClientDetail();
-    }
-    if (action === "add-bathroom") {
-        homeDraft.room_types.bathrooms.push({ type: BATHROOM_TYPES[0] });
-        return renderClientDetail();
-    }
-    if (action === "remove-bathroom") {
-        homeDraft.room_types.bathrooms.splice(Number(el.dataset.index), 1);
-        return renderClientDetail();
-    }
-    if (action === "add-other-space") {
-        homeDraft.room_types.other.push("");
-        return renderClientDetail();
-    }
-    if (action === "remove-other-space") {
-        homeDraft.room_types.other.splice(Number(el.dataset.index), 1);
+    if (action === "remove-custom-space") {
+        homeDraft.room_types.custom.splice(Number(el.dataset.index), 1);
         return renderClientDetail();
     }
 
@@ -603,9 +546,6 @@ clientDetailView.addEventListener("change", (e) => {
     const action = el.dataset.action;
 
     if (action === "toggle-fixed") homeDraft.room_types.fixed[el.dataset.key] = el.checked;
-    if (action === "bedroom-type") homeDraft.room_types.bedrooms[Number(el.dataset.index)].type = el.value;
-    if (action === "bedroom-closet") homeDraft.room_types.bedrooms[Number(el.dataset.index)].walk_in_closet = el.checked;
-    if (action === "bathroom-type") homeDraft.room_types.bathrooms[Number(el.dataset.index)].type = el.value;
     if (action === "toggle-style") {
         const styles = homeDraft.preferred_style.styles;
         const idx = styles.indexOf(el.dataset.style);
@@ -625,7 +565,7 @@ clientDetailView.addEventListener("input", (e) => {
     if (!el || !homeDraft) return;
     const action = el.dataset.action;
 
-    if (action === "other-space-text") homeDraft.room_types.other[Number(el.dataset.index)] = el.value;
+    if (action === "custom-space-text") homeDraft.room_types.custom[Number(el.dataset.index)] = el.value;
     if (action === "pets-type") homeDraft.family_traits.pets.type = el.value;
     if (action === "kids-ages") homeDraft.family_traits.kids.ages = el.value;
     if (action === "family-notes") homeDraft.family_traits.notes = el.value;
