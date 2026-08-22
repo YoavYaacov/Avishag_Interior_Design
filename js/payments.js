@@ -113,6 +113,8 @@ function renderPaymentsSection() {
         .reduce((sum, p) => sum + Number(p.amount || 0), 0);
     const totalSum = clientPaymentsCache.reduce((sum, p) => sum + Number(p.amount || 0), 0);
 
+    const canBackfill = clientPaymentsCache.length === 0 && currentClient.track_id && currentClient.total_project_price;
+
     return `
         <section class="detail-section">
             <div class="section-header">
@@ -121,6 +123,10 @@ function renderPaymentsSection() {
             </div>
             ${clientPaymentsCache.length === 0 ? `
                 <p class="muted">אין עדיין תשלומים ללקוח זה. פעימות התשלום נוצרות אוטומטית כשנבחר מסלול ומחיר.</p>
+                ${canBackfill ? `
+                    <p class="warning-text" style="margin-top:10px">ללקוח זה כבר יש מסלול ומחיר, אך אין פעימות תשלום (כנראה נקבעו לפני שמסך התשלומים היה פעיל).</p>
+                    <button type="button" class="btn-small btn-primary" data-action="backfill-payments">צור פעימות תשלום לפי המסלול הנוכחי</button>
+                ` : ""}
             ` : `
                 <table class="data-table">
                     <thead>
@@ -211,9 +217,16 @@ function openAddPaymentForm() {
 }
 
 // אירועים בקטע התשלומים של כרטיס הלקוח (delegation על אותו קונטיינר ששאר clients.js משתמש בו)
-clientDetailView.addEventListener("click", (e) => {
+clientDetailView.addEventListener("click", async (e) => {
     if (e.target.closest('[data-action="add-payment"]')) {
         return openAddPaymentForm();
+    }
+
+    if (e.target.closest('[data-action="backfill-payments"]')) {
+        await regeneratePaymentsForClient(currentClient.id, currentClient.track_id, currentClient.total_project_price);
+        await loadCurrentClientPayments(currentClient.id);
+        showToast("פעימות התשלום נוצרו לפי המסלול הנוכחי", "ok");
+        return renderClientDetail();
     }
 
     const delBtn = e.target.closest('[data-action="delete-payment"]');
