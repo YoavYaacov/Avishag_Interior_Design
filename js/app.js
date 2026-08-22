@@ -108,6 +108,7 @@ function switchView(viewName) {
     if (viewName === "clients") loadClientsListView();
     if (viewName === "tracks") loadTracksView();
     if (viewName === "tasks") loadTasksView();
+    if (viewName === "payments") loadPaymentsView();
     if (viewName === "diagnostics") runConnectionTest();
 }
 
