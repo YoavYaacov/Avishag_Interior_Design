@@ -292,7 +292,7 @@ function renderTrackSection(c) {
     return `
         <section class="detail-section">
             <h3>מסלול ותמחור</h3>
-            <p class="warning-text">שינוי מסלול יחליף אוטומטית את כל המשימות הקיימות של הלקוח במשימות התבנית של המסלול החדש, וכן ימחק וייצור מחדש את פעימות התשלום (מלבד תשלום הייעוץ ותוספות ידניות, שלא ייפגעו).</p>
+            <p class="warning-text" style="margin-top:10px">שינוי מסלול יחליף אוטומטית את כל המשימות הקיימות של הלקוח במשימות התבנית של המסלול החדש, וכן ימחק וייצור מחדש את פעימות התשלום (מלבד תשלום הייעוץ ותוספות ידניות, שלא ייפגעו).</p>
             <form id="track-form">
                 <label for="track-select">מסלול</label>
                 <select id="track-select">
