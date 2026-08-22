@@ -224,6 +224,7 @@ async function openClientDetail(id) {
     homeDraft = null;
     await loadCurrentClientTasks(id);
     await loadCurrentClientPayments(id);
+    await loadCurrentClientPhotos(id);
 
     clientsListView.classList.add("hidden");
     clientDetailView.classList.remove("hidden");
@@ -255,6 +256,7 @@ function renderClientDetail() {
         ${renderHomeSection(c, roomTypes, familyTraits, preferredStyle)}
         ${renderTrackSection(c)}
         ${renderPaymentsSection()}
+        ${renderPhotosSection()}
         ${renderClientTasksSection()}
     `;
 }
