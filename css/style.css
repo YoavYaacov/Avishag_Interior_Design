@@ -732,3 +732,71 @@ input.switch:checked::before {
 .photo-delete {
     color: #c0392b;
 }
+
+/* ---------- Lightbox (תצוגת תמונה מוגדלת עם דפדוף) ---------- */
+
+.photo-lightbox {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.92);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+}
+
+.lightbox-img {
+    max-width: 90vw;
+    max-height: 90vh;
+    object-fit: contain;
+    border-radius: 4px;
+}
+
+.lightbox-close,
+.lightbox-nav {
+    position: absolute;
+    border: none;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.15);
+    color: #fff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.lightbox-close:hover,
+.lightbox-nav:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.lightbox-close {
+    top: 16px;
+    left: 16px;
+    width: 40px;
+    height: 40px;
+    font-size: 1.1em;
+}
+
+.lightbox-counter {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    color: #fff;
+    font-size: 0.9em;
+    background: rgba(0, 0, 0, 0.4);
+    padding: 4px 10px;
+    border-radius: 12px;
+}
+
+.lightbox-nav {
+    top: 50%;
+    transform: translateY(-50%);
+    width: 48px;
+    height: 48px;
+    font-size: 1.6em;
+}
+
+/* מיקום ימין/שמאל קבוע ולא תלוי כיוון החץ - כי האתר RTL */
+.lightbox-prev { right: 20px; }
+.lightbox-next { left: 20px; }
