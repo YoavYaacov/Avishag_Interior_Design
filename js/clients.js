@@ -223,6 +223,7 @@ async function openClientDetail(id) {
     editingSections = new Set();
     homeDraft = null;
     await loadCurrentClientTasks(id);
+    await loadCurrentClientPayments(id);
 
     clientsListView.classList.add("hidden");
     clientDetailView.classList.remove("hidden");
@@ -253,6 +254,7 @@ function renderClientDetail() {
         ${renderStatusSection(c)}
         ${renderHomeSection(c, roomTypes, familyTraits, preferredStyle)}
         ${renderTrackSection(c)}
+        ${renderPaymentsSection()}
         ${renderClientTasksSection()}
     `;
 }
@@ -290,7 +292,7 @@ function renderTrackSection(c) {
     return `
         <section class="detail-section">
             <h3>מסלול ותמחור</h3>
-            <p class="warning-text">שינוי מסלול יחליף אוטומטית את כל המשימות הקיימות של הלקוח במשימות התבנית של המסלול החדש.</p>
+            <p class="warning-text">שינוי מסלול יחליף אוטומטית את כל המשימות הקיימות של הלקוח במשימות התבנית של המסלול החדש, וכן ימחק וייצור מחדש את פעימות התשלום (מלבד תשלום הייעוץ ותוספות ידניות, שלא ייפגעו).</p>
             <form id="track-form">
                 <label for="track-select">מסלול</label>
                 <select id="track-select">
@@ -627,7 +629,9 @@ clientDetailView.addEventListener("submit", async (e) => {
         if (trackChanged) {
             await regenerateTasksForClient(currentClient.id, newTrackId);
             await loadCurrentClientTasks(currentClient.id);
-            showToast("פרטי המסלול נשמרו והמשימות עודכנו בהתאם למסלול החדש", "ok");
+            await regeneratePaymentsForClient(currentClient.id, newTrackId, payload.total_project_price);
+            await loadCurrentClientPayments(currentClient.id);
+            showToast("פרטי המסלול נשמרו, והמשימות והתשלומים עודכנו בהתאם למסלול החדש", "ok");
         } else {
             showToast("פרטי המסלול נשמרו", "ok");
         }
