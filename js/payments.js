@@ -97,6 +97,33 @@ async function regeneratePaymentsForClient(clientId, trackId, totalPrice) {
     if (error) showToast("שגיאה ביצירת פעימות התשלום", "error");
 }
 
+async function recalculatePaymentAmounts() {
+    const total = currentClient.total_project_price;
+    if (!total) {
+        showToast("אין מחיר כולל מוגדר ללקוח", "error");
+        return;
+    }
+
+    const toUpdate = clientPaymentsCache.filter((p) => p.percent != null && p.status !== PAYMENT_STATUS.PAID);
+    const skippedPaidCount = clientPaymentsCache.filter((p) => p.percent != null && p.status === PAYMENT_STATUS.PAID).length;
+
+    for (const p of toUpdate) {
+        const newAmount = Math.round((total * p.percent) / 100);
+        if (newAmount !== Number(p.amount)) {
+            const { error } = await client.from("payments").update({ amount: newAmount }).eq("id", p.id);
+            if (!error) p.amount = newAmount;
+        }
+    }
+
+    showToast(
+        skippedPaidCount > 0
+            ? `הסכומים עודכנו לפי המחיר הנוכחי (${skippedPaidCount} פעימות ששולמו כבר לא נגעו)`
+            : "הסכומים עודכנו לפי המחיר הנוכחי",
+        "ok"
+    );
+    renderClientDetail();
+}
+
 // ---------- קטע תשלומים בכרטיס הלקוח ----------
 
 let clientPaymentsCache = [];
@@ -114,12 +141,16 @@ function renderPaymentsSection() {
     const totalSum = clientPaymentsCache.reduce((sum, p) => sum + Number(p.amount || 0), 0);
 
     const canBackfill = clientPaymentsCache.length === 0 && currentClient.track_id && currentClient.total_project_price;
+    const canRecalculate = clientPaymentsCache.some((p) => p.percent != null) && currentClient.total_project_price;
 
     return `
         <section class="detail-section">
             <div class="section-header">
                 <h3>תשלומים</h3>
-                <button type="button" class="btn-small btn-ghost" data-action="add-payment">+ תשלום נוסף</button>
+                <div>
+                    ${canRecalculate ? `<button type="button" class="btn-small btn-ghost" data-action="recalculate-amounts" title="מחשב מחדש את הסכומים של הפעימות האחוזיות לפי המחיר הכולל הנוכחי. פעימות שכבר סומנו כ'שולם' לא ייגעו.">רענון סכומים לפי מחיר</button>` : ""}
+                    <button type="button" class="btn-small btn-ghost" data-action="add-payment">+ תשלום נוסף</button>
+                </div>
             </div>
             ${clientPaymentsCache.length === 0 ? `
                 <p class="muted">אין עדיין תשלומים ללקוח זה. פעימות התשלום נוצרות אוטומטית כשנבחר מסלול ומחיר.</p>
@@ -218,6 +249,10 @@ function openAddPaymentForm() {
 
 // אירועים בקטע התשלומים של כרטיס הלקוח (delegation על אותו קונטיינר ששאר clients.js משתמש בו)
 clientDetailView.addEventListener("click", async (e) => {
+    if (e.target.closest('[data-action="recalculate-amounts"]')) {
+        return recalculatePaymentAmounts();
+    }
+
     if (e.target.closest('[data-action="add-payment"]')) {
         return openAddPaymentForm();
     }
