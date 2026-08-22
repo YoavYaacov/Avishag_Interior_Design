@@ -59,7 +59,7 @@ function renderPhotosSection() {
 
 function renderPhotoGallery(title, type, photos) {
     const grid = photos.length
-        ? `<div class="photo-grid">${photos.map((p) => renderPhotoThumb(p)).join("")}</div>`
+        ? `<div class="photo-grid">${photos.map((p) => renderPhotoThumb(p, type)).join("")}</div>`
         : `<p class="muted">אין עדיין תמונות בגלריה הזו.</p>`;
 
     return `
@@ -83,10 +83,10 @@ function renderPhotoGallery(title, type, photos) {
     `;
 }
 
-function renderPhotoThumb(p) {
+function renderPhotoThumb(p, type) {
     const starClass = p.is_portfolio_featured ? "photo-star active" : "photo-star";
     const img = p.signed_url
-        ? `<img src="${p.signed_url}" alt="" loading="lazy" />`
+        ? `<img src="${p.signed_url}" alt="" loading="lazy" data-action="open-photo" data-type="${type}" data-id="${p.id}" />`
         : `<div class="photo-thumb-error">שגיאה בטעינה</div>`;
 
     return `
@@ -120,6 +120,12 @@ clientDetailView.addEventListener("change", async (e) => {
 });
 
 clientDetailView.addEventListener("click", async (e) => {
+    const openBtn = e.target.closest('[data-action="open-photo"]');
+    if (openBtn) {
+        openPhotoLightbox(openBtn.dataset.type, openBtn.dataset.id);
+        return;
+    }
+
     const starBtn = e.target.closest('[data-action="toggle-featured"]');
     if (starBtn) {
         await togglePhotoFeatured(starBtn.dataset.id);
@@ -218,3 +224,56 @@ async function deletePhoto(id) {
     showToast("התמונה נמחקה", "ok");
     renderClientDetail();
 }
+
+// ---------- תצוגת תמונה מוגדלת (Lightbox) עם דפדוף ----------
+// הדפדוף נשאר בתוך אותה גלריה (ייעוץ/תוצאה) בלבד - שתי הגלריות לא מתאחדות.
+
+let lightboxPhotos = []; // רשימת התמונות של הגלריה (סוג אחד בלבד) שפתוחה כרגע ב-lightbox
+let lightboxIndex = 0;
+
+function openPhotoLightbox(type, id) {
+    lightboxPhotos = currentClientPhotos.filter((p) => p.type === type);
+    lightboxIndex = lightboxPhotos.findIndex((p) => p.id === id);
+    if (lightboxIndex === -1) return;
+    renderLightbox();
+}
+
+function renderLightbox() {
+    const photo = lightboxPhotos[lightboxIndex];
+    if (!photo) return;
+
+    const hasPrev = lightboxIndex > 0;
+    const hasNext = lightboxIndex < lightboxPhotos.length - 1;
+
+    openModal(`
+        <div class="photo-lightbox">
+            <button type="button" class="lightbox-close" id="lightbox-close-btn" title="סגירה">✕</button>
+            <span class="lightbox-counter">${lightboxIndex + 1} / ${lightboxPhotos.length}</span>
+            ${hasPrev ? `<button type="button" class="lightbox-nav lightbox-prev" id="lightbox-prev-btn" title="הקודמת">→</button>` : ""}
+            <img class="lightbox-img" src="${photo.signed_url || ""}" alt="" />
+            ${hasNext ? `<button type="button" class="lightbox-nav lightbox-next" id="lightbox-next-btn" title="הבאה">←</button>` : ""}
+        </div>
+    `);
+
+    // סגירה בלחיצה על הרקע הכהה עצמו (לא על התמונה/הכפתורים)
+    document.querySelector(".photo-lightbox").addEventListener("click", (e) => {
+        if (e.target.classList.contains("photo-lightbox")) closeModal();
+    });
+
+    document.getElementById("lightbox-close-btn").addEventListener("click", closeModal);
+
+    const prevBtn = document.getElementById("lightbox-prev-btn");
+    if (prevBtn) prevBtn.addEventListener("click", () => { lightboxIndex--; renderLightbox(); });
+
+    const nextBtn = document.getElementById("lightbox-next-btn");
+    if (nextBtn) nextBtn.addEventListener("click", () => { lightboxIndex++; renderLightbox(); });
+}
+
+// ניווט וסגירה גם במקלדת, כל עוד ה-lightbox פתוח (מזוהה לפי הדיב שלו בתוך המודאל)
+document.addEventListener("keydown", (e) => {
+    if (!document.querySelector(".photo-lightbox")) return;
+
+    if (e.key === "Escape") { closeModal(); return; }
+    if (e.key === "ArrowRight" && lightboxIndex > 0) { lightboxIndex--; renderLightbox(); return; }
+    if (e.key === "ArrowLeft" && lightboxIndex < lightboxPhotos.length - 1) { lightboxIndex++; renderLightbox(); }
+});
