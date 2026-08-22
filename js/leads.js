@@ -232,6 +232,8 @@ function openConvertToClientForm(lead) {
             return;
         }
 
+        await createConsultationPayment(newClient.id);
+
         const { error: updateError } = await client
             .from("leads")
             .update({ status: LEAD_STATUS.CONVERTED, converted_client_id: newClient.id })
