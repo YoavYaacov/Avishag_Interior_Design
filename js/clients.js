@@ -146,6 +146,39 @@ let currentClient = null;
 let editingSections = new Set();
 let homeDraft = null;
 
+// ---------- קטעים מתקפלים (collapsible sections) ----------
+// כל הקטעים בכרטיס הלקוח מתחילים מכווצים; מצב הפתיחה/סגירה נשמר עד למעבר ללקוח אחר.
+// אפשר לפתוח כמה קטעים במקביל - זה לא אקורדיון בלעדי.
+
+let sectionOpenState = {};
+
+function isSectionOpen(id) {
+    return !!sectionOpenState[id];
+}
+
+function toggleSection(id) {
+    sectionOpenState[id] = !sectionOpenState[id];
+    renderClientDetail();
+}
+
+// עוטפת כל קטע בכרטיס הלקוח בכותרת ניתנת ללחיצה + חץ קיפול.
+// extraHeaderHtml: כפתורים נוספים שצריכים להישאר בכותרת גם כשמכווץ (כמו "עריכה" או "+ הוספת תמונות"),
+// בלי שהלחיצה עליהם תפעיל גם את הקיפול (data-action פנימי "קרוב" יותר לאלמנט הנלחץ, ולכן "מנצח" ב-closest()).
+// forceOpen: קטע שנמצא כרגע במצב עריכה תמיד מוצג פתוח, גם אם המשתמשת סגרה אותו קודם.
+function renderCollapsibleSection(id, title, bodyHtml, { extraHeaderHtml = "", forceOpen = false } = {}) {
+    const open = forceOpen || isSectionOpen(id);
+    return `
+        <section class="detail-section collapsible-section ${open ? "is-open" : "is-collapsed"}" data-section-id="${id}">
+            <div class="collapsible-header" data-action="toggle-section" data-section-id="${id}">
+                <span class="collapsible-arrow">◂</span>
+                <h3>${title}</h3>
+                ${extraHeaderHtml}
+            </div>
+            ${open ? `<div class="collapsible-body">${bodyHtml}</div>` : ""}
+        </section>
+    `;
+}
+
 // חללי בית קבועים (ברירת מחדל: דירת 5 חדרים) - כל אחד checkbox פשוט.
 // ניתן להוסיף חללים נוספים בטקסט חופשי (ראה room_types.custom).
 const HOME_FIXED_SPACES = [
@@ -222,9 +255,11 @@ async function openClientDetail(id) {
     currentClient = data;
     editingSections = new Set();
     homeDraft = null;
+    sectionOpenState = {};
     await loadCurrentClientTasks(id);
     await loadCurrentClientPayments(id);
     await loadCurrentClientPhotos(id);
+    await loadCurrentClientCommissions(id);
 
     clientsListView.classList.add("hidden");
     clientDetailView.classList.remove("hidden");
@@ -257,6 +292,7 @@ function renderClientDetail() {
         ${renderTrackSection(c)}
         ${renderPaymentsSection()}
         ${renderPhotosSection()}
+        ${renderCommissionSection()}
         ${renderClientTasksSection()}
     `;
 }
@@ -272,49 +308,43 @@ function renderTrackSection(c) {
             ? `₪${Number(c.total_project_price).toLocaleString("he-IL")}`
             : "-";
 
-        return `
-            <section class="detail-section">
-                <div class="section-header">
-                    <h3>מסלול ותמחור</h3>
-                    <button class="btn-small btn-ghost" data-action="edit-track">עריכה</button>
-                </div>
-                <div class="detail-grid">
-                    <div><span class="detail-label">מסלול</span><span>${escapeHtml(track ? track.name : "טרם נבחר מסלול")}</span></div>
-                    <div><span class="detail-label">מחיר כולל</span><span>${priceDisplay}</span></div>
-                    <div class="span-2"><span class="detail-label">הערות/דיוקים למסלול</span><span>${escapeHtml(c.track_notes || "-")}</span></div>
-                </div>
-            </section>
+        const body = `
+            <div class="detail-grid">
+                <div><span class="detail-label">מסלול</span><span>${escapeHtml(track ? track.name : "טרם נבחר מסלול")}</span></div>
+                <div><span class="detail-label">מחיר כולל</span><span>${priceDisplay}</span></div>
+                <div class="span-2"><span class="detail-label">הערות/דיוקים למסלול</span><span>${escapeHtml(c.track_notes || "-")}</span></div>
+            </div>
         `;
+        const extraHeader = `<button class="btn-small btn-ghost" data-action="edit-track">עריכה</button>`;
+        return renderCollapsibleSection("track", "מסלול ותמחור", body, { extraHeaderHtml: extraHeader });
     }
 
     const trackOptions = tracksCache.map(
         (t) => `<option value="${t.id}" ${c.track_id === t.id ? "selected" : ""}>${escapeHtml(t.name)}</option>`
     ).join("");
 
-    return `
-        <section class="detail-section">
-            <h3>מסלול ותמחור</h3>
-            <p class="warning-text" style="margin-top:10px">שינוי מסלול יחליף אוטומטית את כל המשימות הקיימות של הלקוח במשימות התבנית של המסלול החדש, וכן ימחק וייצור מחדש את פעימות התשלום (מלבד תשלום הייעוץ ותוספות ידניות, שלא ייפגעו).</p>
-            <form id="track-form">
-                <label for="track-select">מסלול</label>
-                <select id="track-select">
-                    <option value="">לא נבחר</option>
-                    ${trackOptions}
-                </select>
+    const body = `
+        <p class="warning-text" style="margin-top:10px">שינוי מסלול יחליף אוטומטית את כל המשימות הקיימות של הלקוח במשימות התבנית של המסלול החדש, וכן ימחק וייצור מחדש את פעימות התשלום (מלבד תשלום הייעוץ ותוספות ידניות, שלא ייפגעו).</p>
+        <form id="track-form">
+            <label for="track-select">מסלול</label>
+            <select id="track-select">
+                <option value="">לא נבחר</option>
+                ${trackOptions}
+            </select>
 
-                <label for="track-price">מחיר כולל שסוכם (₪)</label>
-                <input type="number" id="track-price" min="0" step="1" value="${c.total_project_price ?? ""}" />
+            <label for="track-price">מחיר כולל שסוכם (₪)</label>
+            <input type="number" id="track-price" min="0" step="1" value="${c.total_project_price ?? ""}" />
 
-                <label for="track-notes-input">הערות/דיוקים למסלול</label>
-                <textarea id="track-notes-input" rows="3" placeholder="לדוגמה: יום רכישות נוסף בתשלום">${escapeHtml(c.track_notes || "")}</textarea>
+            <label for="track-notes-input">הערות/דיוקים למסלול</label>
+            <textarea id="track-notes-input" rows="3" placeholder="לדוגמה: יום רכישות נוסף בתשלום">${escapeHtml(c.track_notes || "")}</textarea>
 
-                <div class="modal-actions">
-                    <button type="button" class="btn-ghost" data-action="cancel-track">ביטול</button>
-                    <button type="submit" class="btn-primary">שמירה</button>
-                </div>
-            </form>
-        </section>
+            <div class="modal-actions">
+                <button type="button" class="btn-ghost" data-action="cancel-track">ביטול</button>
+                <button type="submit" class="btn-primary">שמירה</button>
+            </div>
+        </form>
     `;
+    return renderCollapsibleSection("track", "מסלול ותמחור", body, { forceOpen: true });
 }
 
 // ---------- פרטים בסיסיים ----------
@@ -323,38 +353,32 @@ function renderBasicSection(c) {
     const editing = editingSections.has("basic");
 
     if (!editing) {
-        return `
-            <section class="detail-section">
-                <div class="section-header">
-                    <h3>פרטים בסיסיים</h3>
-                    <button class="btn-small btn-ghost" data-action="edit-basic">עריכה</button>
-                </div>
-                <div class="detail-grid">
-                    <div><span class="detail-label">טלפון</span><span class="ltr-cell">${escapeHtml(c.phone)}</span></div>
-                    <div><span class="detail-label">מייל</span><span>${escapeHtml(c.email || "-")}</span></div>
-                    <div><span class="detail-label">כתובת</span><span>${escapeHtml(c.address || "-")}</span></div>
-                </div>
-            </section>
+        const body = `
+            <div class="detail-grid">
+                <div><span class="detail-label">טלפון</span><span class="ltr-cell">${escapeHtml(c.phone)}</span></div>
+                <div><span class="detail-label">מייל</span><span>${escapeHtml(c.email || "-")}</span></div>
+                <div><span class="detail-label">כתובת</span><span>${escapeHtml(c.address || "-")}</span></div>
+            </div>
         `;
+        const extraHeader = `<button class="btn-small btn-ghost" data-action="edit-basic">עריכה</button>`;
+        return renderCollapsibleSection("basic", "פרטים בסיסיים", body, { extraHeaderHtml: extraHeader });
     }
 
-    return `
-        <section class="detail-section">
-            <h3>פרטים בסיסיים</h3>
-            <form id="basic-form">
-                <label for="basic-phone">טלפון</label>
-                <input type="tel" id="basic-phone" value="${escapeHtml(c.phone)}" dir="ltr" required />
-                <label for="basic-email">מייל</label>
-                <input type="email" id="basic-email" value="${escapeHtml(c.email || "")}" />
-                <label for="basic-address">כתובת</label>
-                <input type="text" id="basic-address" value="${escapeHtml(c.address || "")}" />
-                <div class="modal-actions">
-                    <button type="button" class="btn-ghost" data-action="cancel-basic">ביטול</button>
-                    <button type="submit" class="btn-primary">שמירה</button>
-                </div>
-            </form>
-        </section>
+    const body = `
+        <form id="basic-form">
+            <label for="basic-phone">טלפון</label>
+            <input type="tel" id="basic-phone" value="${escapeHtml(c.phone)}" dir="ltr" required />
+            <label for="basic-email">מייל</label>
+            <input type="email" id="basic-email" value="${escapeHtml(c.email || "")}" />
+            <label for="basic-address">כתובת</label>
+            <input type="text" id="basic-address" value="${escapeHtml(c.address || "")}" />
+            <div class="modal-actions">
+                <button type="button" class="btn-ghost" data-action="cancel-basic">ביטול</button>
+                <button type="submit" class="btn-primary">שמירה</button>
+            </div>
+        </form>
     `;
+    return renderCollapsibleSection("basic", "פרטים בסיסיים", body, { forceOpen: true });
 }
 
 // ---------- סטטוס ואצל מי הכדור ----------
@@ -363,38 +387,30 @@ function renderStatusSection(c) {
     const editing = editingSections.has("status");
 
     if (!editing) {
-        return `
-            <section class="detail-section">
-                <div class="section-header">
-                    <h3>סטטוס ותהליך</h3>
-                    <button class="btn-small btn-ghost" data-action="edit-status">עריכה</button>
-                </div>
-            </section>
-        `;
+        const extraHeader = `<button class="btn-small btn-ghost" data-action="edit-status">עריכה</button>`;
+        return renderCollapsibleSection("status", "סטטוס ותהליך", "", { extraHeaderHtml: extraHeader });
     }
 
     const statusOptions = CLIENT_STATUSES.map(
         (s) => `<option value="${s}" ${c.status === s ? "selected" : ""}>${s}</option>`
     ).join("");
 
-    return `
-        <section class="detail-section">
-            <h3>סטטוס ותהליך</h3>
-            <form id="status-form">
-                <label for="status-select">סטטוס</label>
-                <select id="status-select">${statusOptions}</select>
-                <label for="court-select">אצל מי הכדור</label>
-                <select id="court-select">
-                    <option value="${BALL_IN_COURT.AVISHAG}" ${c.ball_in_court === BALL_IN_COURT.AVISHAG ? "selected" : ""}>אבישג</option>
-                    <option value="${BALL_IN_COURT.CLIENT}" ${c.ball_in_court === BALL_IN_COURT.CLIENT ? "selected" : ""}>לקוח</option>
-                </select>
-                <div class="modal-actions">
-                    <button type="button" class="btn-ghost" data-action="cancel-status">ביטול</button>
-                    <button type="submit" class="btn-primary">שמירה</button>
-                </div>
-            </form>
-        </section>
+    const body = `
+        <form id="status-form">
+            <label for="status-select">סטטוס</label>
+            <select id="status-select">${statusOptions}</select>
+            <label for="court-select">אצל מי הכדור</label>
+            <select id="court-select">
+                <option value="${BALL_IN_COURT.AVISHAG}" ${c.ball_in_court === BALL_IN_COURT.AVISHAG ? "selected" : ""}>אבישג</option>
+                <option value="${BALL_IN_COURT.CLIENT}" ${c.ball_in_court === BALL_IN_COURT.CLIENT ? "selected" : ""}>לקוח</option>
+            </select>
+            <div class="modal-actions">
+                <button type="button" class="btn-ghost" data-action="cancel-status">ביטול</button>
+                <button type="submit" class="btn-primary">שמירה</button>
+            </div>
+        </form>
     `;
+    return renderCollapsibleSection("status", "סטטוס ותהליך", body, { forceOpen: true });
 }
 
 // ---------- פרטי הבית ----------
@@ -403,22 +419,18 @@ function renderHomeSection(c, roomTypes, familyTraits, preferredStyle) {
     const editing = editingSections.has("home");
 
     if (!editing) {
-        return `
-            <section class="detail-section">
-                <div class="section-header">
-                    <h3>פרטי הבית</h3>
-                    <button class="btn-small btn-ghost" data-action="edit-home">עריכה</button>
-                </div>
-                <div class="detail-grid">
-                    <div><span class="detail-label">מספר נפשות</span><span>${c.household_members ?? "-"}</span></div>
-                    <div><span class="detail-label">מספר חללים</span><span>${c.rooms_count ?? "-"}</span></div>
-                    <div class="span-2"><span class="detail-label">פירוט חללים</span><span>${escapeHtml(summarizeRoomTypes(roomTypes))}</span></div>
-                    <div class="span-2"><span class="detail-label">אופי משפחתי</span><span>${escapeHtml(summarizeFamilyTraits(familyTraits))}</span></div>
-                    <div class="span-2"><span class="detail-label">סגנון מועדף</span><span>${escapeHtml(summarizeStyle(preferredStyle))}</span></div>
-                    <div class="span-2"><span class="detail-label">גוונים וחומריות</span><span>${escapeHtml(c.color_materials || "-")}</span></div>
-                </div>
-            </section>
+        const body = `
+            <div class="detail-grid">
+                <div><span class="detail-label">מספר נפשות</span><span>${c.household_members ?? "-"}</span></div>
+                <div><span class="detail-label">מספר חללים</span><span>${c.rooms_count ?? "-"}</span></div>
+                <div class="span-2"><span class="detail-label">פירוט חללים</span><span>${escapeHtml(summarizeRoomTypes(roomTypes))}</span></div>
+                <div class="span-2"><span class="detail-label">אופי משפחתי</span><span>${escapeHtml(summarizeFamilyTraits(familyTraits))}</span></div>
+                <div class="span-2"><span class="detail-label">סגנון מועדף</span><span>${escapeHtml(summarizeStyle(preferredStyle))}</span></div>
+                <div class="span-2"><span class="detail-label">גוונים וחומריות</span><span>${escapeHtml(c.color_materials || "-")}</span></div>
+            </div>
         `;
+        const extraHeader = `<button class="btn-small btn-ghost" data-action="edit-home">עריכה</button>`;
+        return renderCollapsibleSection("home", "פרטי הבית", body, { extraHeaderHtml: extraHeader });
     }
 
     // מצב עריכה - עובדים על עותק זמני (homeDraft) עד לשמירה
@@ -453,64 +465,62 @@ function renderHomeSection(c, roomTypes, familyTraits, preferredStyle) {
         </label>
     `).join("");
 
-    return `
-        <section class="detail-section">
-            <h3>פרטי הבית</h3>
-            <div id="home-edit-form">
-                <label for="home-members">מספר נפשות בבית</label>
-                <input type="number" id="home-members" min="0" value="${escapeHtml(homeDraft.household_members)}" />
+    const body = `
+        <div id="home-edit-form">
+            <label for="home-members">מספר נפשות בבית</label>
+            <input type="number" id="home-members" min="0" value="${escapeHtml(homeDraft.household_members)}" />
 
-                <label class="block-label">חללים</label>
-                <div class="pill-row">${fixedCheckboxes}</div>
+            <label class="block-label">חללים</label>
+            <div class="pill-row">${fixedCheckboxes}</div>
 
-                <label class="block-label">חללים נוספים (טקסט חופשי)</label>
-                <div id="custom-spaces-list">${customRows}</div>
-                <button type="button" class="btn-small btn-ghost" data-action="add-custom-space">+ הוספת חלל</button>
+            <label class="block-label">חללים נוספים (טקסט חופשי)</label>
+            <div id="custom-spaces-list">${customRows}</div>
+            <button type="button" class="btn-small btn-ghost" data-action="add-custom-space">+ הוספת חלל</button>
 
-                <hr class="divider" />
+            <hr class="divider" />
 
-                <label class="block-label">אופי משפחתי</label>
-                <label class="toggle-row">
-                    <span>חיות מחמד</span>
-                    <input type="checkbox" class="switch" data-action="toggle-pets" ${homeDraft.family_traits.pets.has ? "checked" : ""} />
-                </label>
-                ${homeDraft.family_traits.pets.has ? `
-                    <input type="text" id="pets-type" placeholder="איזה חיה?" value="${escapeHtml(homeDraft.family_traits.pets.type)}" data-action="pets-type" />
-                ` : ""}
+            <label class="block-label">אופי משפחתי</label>
+            <label class="toggle-row">
+                <span>חיות מחמד</span>
+                <input type="checkbox" class="switch" data-action="toggle-pets" ${homeDraft.family_traits.pets.has ? "checked" : ""} />
+            </label>
+            ${homeDraft.family_traits.pets.has ? `
+                <input type="text" id="pets-type" placeholder="איזה חיה?" value="${escapeHtml(homeDraft.family_traits.pets.type)}" data-action="pets-type" />
+            ` : ""}
 
-                <label class="toggle-row">
-                    <span>ילדים</span>
-                    <input type="checkbox" class="switch" data-action="toggle-kids" ${homeDraft.family_traits.kids.has ? "checked" : ""} />
-                </label>
-                ${homeDraft.family_traits.kids.has ? `
-                    <input type="text" id="kids-ages" placeholder="גילאים" value="${escapeHtml(homeDraft.family_traits.kids.ages)}" data-action="kids-ages" />
-                ` : ""}
+            <label class="toggle-row">
+                <span>ילדים</span>
+                <input type="checkbox" class="switch" data-action="toggle-kids" ${homeDraft.family_traits.kids.has ? "checked" : ""} />
+            </label>
+            ${homeDraft.family_traits.kids.has ? `
+                <input type="text" id="kids-ages" placeholder="גילאים" value="${escapeHtml(homeDraft.family_traits.kids.ages)}" data-action="kids-ages" />
+            ` : ""}
 
-                <label class="toggle-row">
-                    <span>מארחים הרבה</span>
-                    <input type="checkbox" class="switch" data-action="toggle-hosts" ${homeDraft.family_traits.hosts_a_lot ? "checked" : ""} />
-                </label>
+            <label class="toggle-row">
+                <span>מארחים הרבה</span>
+                <input type="checkbox" class="switch" data-action="toggle-hosts" ${homeDraft.family_traits.hosts_a_lot ? "checked" : ""} />
+            </label>
 
-                <label for="family-notes">הערות נוספות על אופי המשפחה</label>
-                <textarea id="family-notes" rows="2" data-action="family-notes">${escapeHtml(homeDraft.family_traits.notes)}</textarea>
+            <label for="family-notes">הערות נוספות על אופי המשפחה</label>
+            <textarea id="family-notes" rows="2" data-action="family-notes">${escapeHtml(homeDraft.family_traits.notes)}</textarea>
 
-                <hr class="divider" />
+            <hr class="divider" />
 
-                <label class="block-label">סגנון עיצובי מועדף</label>
-                <div class="pill-row">${styleChips}</div>
-                <label for="style-notes">דיוקים / ניואנסים בסגנון</label>
-                <textarea id="style-notes" rows="2" data-action="style-notes">${escapeHtml(homeDraft.preferred_style.notes)}</textarea>
+            <label class="block-label">סגנון עיצובי מועדף</label>
+            <div class="pill-row">${styleChips}</div>
+            <label for="style-notes">דיוקים / ניואנסים בסגנון</label>
+            <textarea id="style-notes" rows="2" data-action="style-notes">${escapeHtml(homeDraft.preferred_style.notes)}</textarea>
 
-                <label for="color-materials">גוונים וחומריות</label>
-                <textarea id="color-materials" rows="2" data-action="color-materials">${escapeHtml(homeDraft.color_materials)}</textarea>
+            <label for="color-materials">גוונים וחומריות</label>
+            <textarea id="color-materials" rows="2" data-action="color-materials">${escapeHtml(homeDraft.color_materials)}</textarea>
 
-                <div class="modal-actions">
-                    <button type="button" class="btn-ghost" data-action="cancel-home">ביטול</button>
-                    <button type="button" class="btn-primary" data-action="save-home">שמירה</button>
-                </div>
+            <div class="modal-actions">
+                <button type="button" class="btn-ghost" data-action="cancel-home">ביטול</button>
+                <button type="button" class="btn-primary" data-action="save-home">שמירה</button>
             </div>
-        </section>
+        </div>
     `;
+    return renderCollapsibleSection("home", "פרטי הבית", body, { forceOpen: true });
 }
 
 // ---------- אירועים בכרטיס הלקוח (delegation יחיד) ----------
@@ -522,16 +532,18 @@ clientDetailView.addEventListener("click", async (e) => {
 
     if (action === "back-to-clients") return backToClientsList();
 
-    if (action === "edit-basic") { editingSections.add("basic"); return renderClientDetail(); }
+    if (action === "toggle-section") return toggleSection(el.dataset.sectionId);
+
+    if (action === "edit-basic") { editingSections.add("basic"); sectionOpenState.basic = true; return renderClientDetail(); }
     if (action === "cancel-basic") { editingSections.delete("basic"); return renderClientDetail(); }
 
-    if (action === "edit-status") { editingSections.add("status"); return renderClientDetail(); }
+    if (action === "edit-status") { editingSections.add("status"); sectionOpenState.status = true; return renderClientDetail(); }
     if (action === "cancel-status") { editingSections.delete("status"); return renderClientDetail(); }
 
-    if (action === "edit-home") { editingSections.add("home"); homeDraft = null; return renderClientDetail(); }
+    if (action === "edit-home") { editingSections.add("home"); homeDraft = null; sectionOpenState.home = true; return renderClientDetail(); }
     if (action === "cancel-home") { editingSections.delete("home"); homeDraft = null; return renderClientDetail(); }
 
-    if (action === "edit-track") { await ensureTracksLoaded(); editingSections.add("track"); return renderClientDetail(); }
+    if (action === "edit-track") { await ensureTracksLoaded(); editingSections.add("track"); sectionOpenState.track = true; return renderClientDetail(); }
     if (action === "cancel-track") { editingSections.delete("track"); return renderClientDetail(); }
 
     if (action === "add-custom-space") {
