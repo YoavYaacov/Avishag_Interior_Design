@@ -143,40 +143,38 @@ function renderPaymentsSection() {
     const canBackfill = clientPaymentsCache.length === 0 && currentClient.track_id && currentClient.total_project_price;
     const canRecalculate = clientPaymentsCache.some((p) => p.percent != null) && currentClient.total_project_price;
 
-    return `
-        <section class="detail-section">
-            <div class="section-header">
-                <h3>תשלומים</h3>
-                <div>
-                    ${canRecalculate ? `<button type="button" class="btn-small btn-ghost" data-action="recalculate-amounts" title="מחשב מחדש את הסכומים של הפעימות האחוזיות לפי המחיר הכולל הנוכחי. פעימות שכבר סומנו כ'שולם' לא ייגעו.">רענון סכומים לפי מחיר</button>` : ""}
-                    <button type="button" class="btn-small btn-ghost" data-action="add-payment">+ תשלום נוסף</button>
-                </div>
-            </div>
-            ${clientPaymentsCache.length === 0 ? `
-                <p class="muted">אין עדיין תשלומים ללקוח זה. פעימות התשלום נוצרות אוטומטית כשנבחר מסלול ומחיר.</p>
-                ${canBackfill ? `
-                    <p class="warning-text" style="margin-top:10px">ללקוח זה כבר יש מסלול ומחיר, אך אין פעימות תשלום (כנראה נקבעו לפני שמסך התשלומים היה פעיל).</p>
-                    <button type="button" class="btn-small btn-primary" data-action="backfill-payments">צור פעימות תשלום לפי המסלול הנוכחי</button>
-                ` : ""}
-            ` : `
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>שלב</th>
-                            <th>סכום (₪)</th>
-                            <th>אחוז</th>
-                            <th>סטטוס</th>
-                            <th>תאריך תשלום</th>
-                            <th>הערות</th>
-                            <th></th>
-                        </tr>
-                    </thead>
-                    <tbody>${clientPaymentsCache.map(renderPaymentRow).join("")}</tbody>
-                </table>
-                <p class="muted" style="margin-top:8px">שולם עד כה: ₪${paidTotal.toLocaleString("he-IL")} מתוך ₪${totalSum.toLocaleString("he-IL")}</p>
-            `}
-        </section>
+    const body = clientPaymentsCache.length === 0 ? `
+        <p class="muted">אין עדיין תשלומים ללקוח זה. פעימות התשלום נוצרות אוטומטית כשנבחר מסלול ומחיר.</p>
+        ${canBackfill ? `
+            <p class="warning-text" style="margin-top:10px">ללקוח זה כבר יש מסלול ומחיר, אך אין פעימות תשלום (כנראה נקבעו לפני שמסך התשלומים היה פעיל).</p>
+            <button type="button" class="btn-small btn-primary" data-action="backfill-payments">צור פעימות תשלום לפי המסלול הנוכחי</button>
+        ` : ""}
+    ` : `
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>שלב</th>
+                    <th>סכום (₪)</th>
+                    <th>אחוז</th>
+                    <th>סטטוס</th>
+                    <th>תאריך תשלום</th>
+                    <th>הערות</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>${clientPaymentsCache.map(renderPaymentRow).join("")}</tbody>
+        </table>
+        <p class="muted" style="margin-top:8px">שולם עד כה: ₪${paidTotal.toLocaleString("he-IL")} מתוך ₪${totalSum.toLocaleString("he-IL")}</p>
     `;
+
+    const extraHeader = `
+        <div>
+            ${canRecalculate ? `<button type="button" class="btn-small btn-ghost" data-action="recalculate-amounts" title="מחשב מחדש את הסכומים של הפעימות האחוזיות לפי המחיר הכולל הנוכחי. פעימות שכבר סומנו כ'שולם' לא ייגעו.">רענון סכומים לפי מחיר</button>` : ""}
+            <button type="button" class="btn-small btn-ghost" data-action="add-payment">+ תשלום נוסף</button>
+        </div>
+    `;
+
+    return renderCollapsibleSection("payments", "תשלומים", body, { extraHeaderHtml: extraHeader });
 }
 
 function renderPaymentRow(p) {
