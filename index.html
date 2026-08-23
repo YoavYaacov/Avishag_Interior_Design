@@ -40,6 +40,7 @@
             <button class="nav-btn" data-view="tasks">משימות</button>
             <button class="nav-btn" data-view="payments">תשלומים</button>
             <button class="nav-btn" data-view="commission">עמלות</button>
+            <button class="nav-btn" data-view="suppliers">ספקים</button>
             <button class="nav-btn" data-view="tracks">מסלולים</button>
             <button class="nav-btn" data-view="diagnostics">בדיקת מערכת</button>
         </nav>
@@ -95,6 +96,14 @@
                 <div id="commission-table-container"></div>
             </section>
 
+            <!-- ===== ספקים/קבלנים (SUPPLIERS) - חוצה-לקוחות ===== -->
+            <section id="suppliers-view" class="app-view hidden">
+                <div class="view-header">
+                    <h2>ספקים/קבלנים</h2>
+                </div>
+                <div id="suppliers-table-container"></div>
+            </section>
+
             <!-- ===== מסלולים (TRACKS) ===== -->
             <section id="tracks-view" class="app-view hidden">
                 <div class="view-header">
@@ -129,6 +138,7 @@
     <script src="js/photos.js"></script>
     <script src="js/payments.js"></script>
     <script src="js/commission.js"></script>
+    <script src="js/suppliers.js"></script>
     <script src="js/tasks.js"></script>
 
     <!--
