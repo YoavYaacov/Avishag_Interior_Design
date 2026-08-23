@@ -260,6 +260,7 @@ async function openClientDetail(id) {
     await loadCurrentClientPayments(id);
     await loadCurrentClientPhotos(id);
     await loadCurrentClientCommissions(id);
+    await loadCurrentClientSuppliers(id);
 
     clientsListView.classList.add("hidden");
     clientDetailView.classList.remove("hidden");
@@ -291,6 +292,7 @@ function renderClientDetail() {
         ${renderPaymentsSection()}
         ${renderPhotosSection()}
         ${renderCommissionSection()}
+        ${renderSuppliersSection()}
         ${renderClientTasksSection()}
     `;
 }
