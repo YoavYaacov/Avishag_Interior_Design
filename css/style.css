@@ -882,3 +882,20 @@ input.switch:checked::before {
 .collapsible-header .btn-small {
     flex: 0 0 auto;
 }
+
+/* ============================================================
+   הוספה לקובץ css/style.css הקיים - שלב 10 (ספקים/קבלנים)
+   טבלת הספקים המקושרים בכרטיס הלקוח - עמודת "מה הוזמן / הערות" צריכה
+   יותר רוחב, כמו שנעשה לטבלת העמלות בשלב 9.
+   הדביקי את הקטע הזה בסוף css/style.css.
+   ============================================================ */
+
+.suppliers-table {
+    table-layout: auto;
+}
+
+.suppliers-table input {
+    width: 100%;
+    min-width: 140px;
+    box-sizing: border-box;
+}
