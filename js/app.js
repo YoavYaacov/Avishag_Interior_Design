@@ -109,6 +109,7 @@ function switchView(viewName) {
     if (viewName === "tracks") loadTracksView();
     if (viewName === "tasks") loadTasksView();
     if (viewName === "payments") loadPaymentsView();
+    if (viewName === "commission") loadCommissionView();
     if (viewName === "diagnostics") runConnectionTest();
 }
 
@@ -261,4 +262,4 @@ async function runConnectionTest() {
         : `${successCount} מתוך ${TABLES.length} טבלאות נגישות. בדקי שהרצת את schema.sql במלואו.`;
 }
 
-checkSession();
+// קריאה בפועל ל-checkSession() מתבצעת רק בסוף index.html, אחרי טעינת כל קבצי ה-JS (ראו שם, ותיעוד בהערה שם).
