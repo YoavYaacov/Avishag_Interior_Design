@@ -800,3 +800,37 @@ input.switch:checked::before {
 /* מיקום ימין/שמאל קבוע ולא תלוי כיוון החץ - כי האתר RTL */
 .lightbox-prev { right: 20px; }
 .lightbox-next { left: 20px; }
+
+.collapsible-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.collapsible-header h3 {
+    margin: 0;
+    flex: 1;
+}
+
+.collapsible-arrow {
+    display: inline-block;
+    font-size: 0.85em;
+    color: #888;
+    transition: transform 0.15s ease;
+}
+
+/* כשהקטע פתוח - החץ מסתובב מ"שמאלה" ל"למטה" */
+.collapsible-section.is-open .collapsible-arrow {
+    transform: rotate(-90deg);
+}
+
+.collapsible-body {
+    margin-top: 12px;
+}
+
+/* מונע מכפתורים בכותרת (עריכה / הוספה) להיראות כמו חלק מאזור הלחיצה על הכיווץ עצמו */
+.collapsible-header .btn-small {
+    flex: 0 0 auto;
+}
