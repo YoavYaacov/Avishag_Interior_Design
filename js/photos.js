@@ -46,15 +46,12 @@ function renderPhotosSection() {
     const consultationPhotos = currentClientPhotos.filter((p) => p.type === PHOTO_TYPE.CONSULTATION);
     const resultPhotos = currentClientPhotos.filter((p) => p.type === PHOTO_TYPE.RESULT);
 
-    return `
-        <section class="detail-section">
-            <div class="section-header">
-                <h3>גלריית תמונות</h3>
-            </div>
-            ${renderPhotoGallery("תמונות מהייעוץ", PHOTO_TYPE.CONSULTATION, consultationPhotos)}
-            ${renderPhotoGallery("תמונות תוצאה סופית", PHOTO_TYPE.RESULT, resultPhotos)}
-        </section>
+    const body = `
+        ${renderPhotoGallery("תמונות מהייעוץ", PHOTO_TYPE.CONSULTATION, consultationPhotos)}
+        ${renderPhotoGallery("תמונות תוצאה סופית", PHOTO_TYPE.RESULT, resultPhotos)}
     `;
+
+    return renderCollapsibleSection("photos", "גלריית תמונות", body);
 }
 
 function renderPhotoGallery(title, type, photos) {
