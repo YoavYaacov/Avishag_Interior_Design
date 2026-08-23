@@ -1,428 +1,266 @@
 // ============================================================
-// ספקים/קבלנים (SUPPLIERS + CLIENT_SUPPLIERS) - שלב 10
-// מאגר גלובלי של ספקים (SUPPLIERS) + קישור פר לקוח (CLIENT_SUPPLIERS, one-to-many).
-// עריכת פרטי הספק עצמו (שם/איש קשר/טלפון/הערות מחירון) נעשית רק דרך המאגר
-// הגלובלי - "מקור אמת" יחיד. בכרטיס הלקוח מקשרים/מנתקים ספק, ומזינים הערה
-// חופשית ספציפית ללקוח (מה הוזמן ממנו בפרויקט הזה).
-// חייב להיטען אחרי js/clients.js (הקטע בכרטיס הלקוח משתמש ב-clientDetailView).
+// ליבה: התחברות, ניווט בין מסכים, כלים משותפים, קבועים
 // ============================================================
 
-let currentClientSuppliers = [];
+const { createClient } = supabase;
+const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// מאגר הספקים הגלובלי, בקאש משותף בין מסך "ספקים" לבין מודאל הקישור בכרטיס הלקוח
-let suppliersCache = [];
-let suppliersLoaded = false;
+// ---------- קבועים משותפים ----------
 
-// ============================================================
-// ---------- כרטיס לקוח: טעינה ורינדור ----------
-// ============================================================
+const LEAD_STATUS = {
+    OPEN: "פתוח",
+    CONVERTED: "הומר ללקוח",
+    IRRELEVANT: "לא רלוונטי",
+};
 
-async function loadCurrentClientSuppliers(clientId) {
-    const { data, error } = await client
-        .from("client_suppliers")
-        .select("*, suppliers(*)")
-        .eq("client_id", clientId);
+const LEAD_SOURCES = ["אינסטגרם", "פייסבוק", "גוגל", "המלצה מלקוח", "אתר", "אחר"];
 
-    currentClientSuppliers = error ? [] : (data || []);
-}
+const CLIENT_STATUSES = [
+    "נקבעה פגישת ייעוץ",
+    "ממתין לבחירת מסלול",
+    "מסלול נבחר - בעבודה",
+    "ממתין לתשלום",
+    "תכניות בעבודה",
+    "הועבר לקבלן",
+    "בביצוע בשטח",
+    "לקראת מסירה",
+    "הושלם - ממתין לתמונות סיום",
+    "סגור/ארכיון",
+    "ויתר",
+];
 
-function renderSuppliersSection() {
-    const rows = currentClientSuppliers.map((cs) => renderSupplierLinkRow(cs)).join("");
+const BALL_IN_COURT = { AVISHAG: "אבישג", CLIENT: "לקוח" };
 
-    const body = currentClientSuppliers.length ? `
-        <table class="data-table suppliers-table">
-            <thead>
-                <tr>
-                    <th>שם הספק/קבלן</th>
-                    <th>איש קשר</th>
-                    <th>טלפון</th>
-                    <th>מה הוזמן / הערות</th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody>${rows}</tbody>
-        </table>
-    ` : `<p class="muted">אין עדיין ספקים מקושרים ללקוח זה.</p>`;
+const STYLE_OPTIONS = [
+    "מודרני", "סקנדינבי", "מינימליסטי", "כפרי/רוסטיק",
+    "בוהו", "קלאסי", "תעשייתי", "ים תיכוני",
+];
 
-    const extraHeader = `<button type="button" class="btn-small btn-primary" data-action="add-supplier-link">+ קישור ספק</button>`;
-    return renderCollapsibleSection("suppliers", "ספקים/קבלנים", body, { extraHeaderHtml: extraHeader });
-}
+// ---------- אלמנטים כלליים ----------
 
-function renderSupplierLinkRow(cs) {
-    const s = cs.suppliers || {};
-    return `
-        <tr class="table-row" data-id="${cs.id}">
-            <td>${escapeHtml(s.name || "-")}</td>
-            <td>${escapeHtml(s.contact_person || "-")}</td>
-            <td class="ltr-cell">${escapeHtml(s.phone || "-")}</td>
-            <td><input type="text" value="${escapeHtml(cs.notes || "")}" data-action="supplier-link-field" data-field="notes" data-id="${cs.id}" placeholder="מה הוזמן..." /></td>
-            <td><button type="button" class="btn-icon" data-action="unlink-supplier" data-id="${cs.id}" title="הסרת קישור (הספק עצמו יישאר ברשימה הגלובלית)">🗑</button></td>
-        </tr>
-    `;
-}
+const loginView = document.getElementById("login-view");
+const dashboardView = document.getElementById("dashboard-view");
+const loginForm = document.getElementById("login-form");
+const loginError = document.getElementById("login-error");
+const logoutBtn = document.getElementById("logout-btn");
+const userEmailEl = document.getElementById("user-email");
+const statusGrid = document.getElementById("status-grid");
+const statusMessage = document.getElementById("status-message");
 
-// ---------- אירועים בכרטיס הלקוח ----------
+const TABLES = [
+    "tracks", "leads", "clients", "task_templates", "tasks",
+    "payments", "commission_income", "meeting_summary", "addendums",
+    "quotes", "photos", "suppliers", "client_suppliers", "calendar_events",
+];
 
-clientDetailView.addEventListener("click", async (e) => {
-    if (e.target.closest('[data-action="add-supplier-link"]')) {
-        await openSupplierLinkModal();
-        return;
+// ---------- התחברות ----------
+
+async function checkSession() {
+    const { data: { session } } = await client.auth.getSession();
+    if (session) {
+        showDashboard(session.user.email);
+    } else {
+        showLogin();
     }
+}
 
-    const unlinkBtn = e.target.closest('[data-action="unlink-supplier"]');
-    if (unlinkBtn) {
-        const id = unlinkBtn.dataset.id;
-        openConfirmModal("האם להסיר את קישור הספק ללקוח? הספק עצמו יישאר ברשימה הגלובלית.", async () => {
-            await unlinkSupplier(id);
-        }, "כן, להסיר");
-        return;
-    }
-});
+function showLogin() {
+    loginView.classList.remove("hidden");
+    dashboardView.classList.add("hidden");
+}
 
-clientDetailView.addEventListener("change", async (e) => {
-    const el = e.target.closest('[data-action="supplier-link-field"]');
-    if (!el) return;
+function showDashboard(email) {
+    loginView.classList.add("hidden");
+    dashboardView.classList.remove("hidden");
+    userEmailEl.textContent = email;
+    switchView("leads");
+}
 
-    const id = el.dataset.id;
-    const field = el.dataset.field;
-    const link = currentClientSuppliers.find((cs) => cs.id === id);
-    if (!link) return;
+loginForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    loginError.textContent = "";
+    const email = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value;
 
-    const value = el.value.trim() || null;
-
-    const { error } = await client.from("client_suppliers").update({ [field]: value }).eq("id", id);
+    const { data, error } = await client.auth.signInWithPassword({ email, password });
     if (error) {
-        showToast("שגיאה בשמירת השינוי", "error");
+        loginError.textContent = "פרטי התחברות שגויים. נסי שוב.";
         return;
     }
-
-    link[field] = value;
-    showToast("נשמר", "ok");
+    showDashboard(data.user.email);
 });
 
-// ---------- פעולות בכרטיס הלקוח ----------
+logoutBtn.addEventListener("click", async () => {
+    await client.auth.signOut();
+    showLogin();
+});
 
-async function ensureSuppliersLoaded() {
-    if (suppliersLoaded) return;
-    const { data, error } = await client.from("suppliers").select("*").order("name");
-    suppliersCache = error ? [] : (data || []);
-    suppliersLoaded = true;
+// ---------- ניווט בין מסכים ----------
+
+function switchView(viewName) {
+    document.querySelectorAll(".app-view").forEach((el) => el.classList.add("hidden"));
+    document.querySelectorAll(".nav-btn").forEach((btn) => btn.classList.remove("active"));
+
+    document.getElementById(`${viewName}-view`).classList.remove("hidden");
+    document.querySelector(`.nav-btn[data-view="${viewName}"]`).classList.add("active");
+
+    if (viewName === "leads") loadLeadsView();
+    if (viewName === "clients") loadClientsListView();
+    if (viewName === "tracks") loadTracksView();
+    if (viewName === "tasks") loadTasksView();
+    if (viewName === "payments") loadPaymentsView();
+    if (viewName === "commission") loadCommissionView();
+    if (viewName === "suppliers") loadSuppliersView();
+    if (viewName === "diagnostics") runConnectionTest();
 }
 
-async function openSupplierLinkModal() {
-    await ensureSuppliersLoaded();
+document.querySelectorAll(".nav-btn").forEach((btn) => {
+    btn.addEventListener("click", () => switchView(btn.dataset.view));
+});
 
-    // ספקים שכבר מקושרים ללקוח הזה לא מוצגים שוב ברשימת "ספק קיים", כדי למנוע קישור כפול
-    const alreadyLinkedIds = new Set(currentClientSuppliers.map((cs) => cs.supplier_id));
-    const availableSuppliers = suppliersCache.filter((s) => !alreadyLinkedIds.has(s.id));
+// ---------- מודאל כללי ----------
 
-    const supplierOptions = availableSuppliers.map(
-        (s) => `<option value="${s.id}">${escapeHtml(s.name)}</option>`
-    ).join("");
+const modalOverlay = document.getElementById("modal-overlay");
+const modalBox = document.getElementById("modal-box");
 
+function openModal(html) {
+    modalBox.innerHTML = html;
+    modalOverlay.classList.remove("hidden");
+}
+
+function closeModal() {
+    modalOverlay.classList.add("hidden");
+    modalBox.innerHTML = "";
+}
+
+modalOverlay.addEventListener("click", (e) => {
+    if (e.target === modalOverlay) closeModal();
+});
+
+// ---------- מודאל אישור כללי ----------
+
+function openConfirmModal(message, onConfirm, confirmLabel = "אישור") {
     openModal(`
-        <h2>קישור ספק/קבלן ללקוח</h2>
-        <form id="supplier-link-form">
-            <label class="toggle-row">
-                <span>ספק חדש (לא ברשימה הקיימת)</span>
-                <input type="checkbox" class="switch" id="supplier-new-toggle" />
-            </label>
-
-            <div id="supplier-existing-block" ${availableSuppliers.length === 0 ? 'class="hidden"' : ""}>
-                <label for="supplier-select">בחירת ספק קיים</label>
-                <select id="supplier-select">${supplierOptions}</select>
-            </div>
-
-            ${availableSuppliers.length === 0 ? `<p class="muted">אין כרגע ספקים זמינים לבחירה (כולם כבר מקושרים, או שהמאגר ריק) - ניתן להוסיף ספק חדש.</p>` : ""}
-
-            <div id="supplier-new-block" class="hidden">
-                <label for="supplier-new-name">שם הספק/קבלן</label>
-                <input type="text" id="supplier-new-name" />
-                <label for="supplier-new-contact">איש קשר</label>
-                <input type="text" id="supplier-new-contact" />
-                <label for="supplier-new-phone">טלפון</label>
-                <input type="tel" id="supplier-new-phone" dir="ltr" />
-                <label for="supplier-new-price-notes">הערות מחירון</label>
-                <textarea id="supplier-new-price-notes" rows="2"></textarea>
-            </div>
-
-            <label for="supplier-link-notes">מה הוזמן / הערות (ספציפי ללקוח זה)</label>
-            <textarea id="supplier-link-notes" rows="2"></textarea>
-
-            <div class="modal-actions">
-                <button type="button" class="btn-ghost" id="supplier-link-cancel-btn">ביטול</button>
-                <button type="submit" class="btn-primary">שמירה</button>
-            </div>
-        </form>
+        <h2>אישור פעולה</h2>
+        <p>${escapeHtml(message)}</p>
+        <div class="modal-actions">
+            <button type="button" class="btn-ghost" data-action="close-modal">ביטול</button>
+            <button type="button" class="btn-primary" id="confirm-modal-btn">${escapeHtml(confirmLabel)}</button>
+        </div>
     `);
 
-    const newToggle = document.getElementById("supplier-new-toggle");
-    const existingBlock = document.getElementById("supplier-existing-block");
-    const newBlock = document.getElementById("supplier-new-block");
-
-    // אם אין שום ספק זמין לבחירה - פותחים ישר במצב "ספק חדש" ונועלים את המתג
-    if (availableSuppliers.length === 0) {
-        newToggle.checked = true;
-        newToggle.disabled = true;
-        newBlock.classList.remove("hidden");
-    }
-
-    newToggle.addEventListener("change", () => {
-        existingBlock.classList.toggle("hidden", newToggle.checked);
-        newBlock.classList.toggle("hidden", !newToggle.checked);
+    document.getElementById("confirm-modal-btn").addEventListener("click", async () => {
+        closeModal();
+        await onConfirm();
     });
+}
 
-    document.getElementById("supplier-link-cancel-btn").addEventListener("click", closeModal);
+// ---------- טוסט ----------
 
-    document.getElementById("supplier-link-form").addEventListener("submit", async (e) => {
-        e.preventDefault();
+let toastTimer = null;
+function showToast(message, type = "ok") {
+    const toast = document.getElementById("toast");
+    toast.textContent = message;
+    toast.className = `toast toast-${type}`;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.add("hidden"), 3000);
+}
 
-        const notes = document.getElementById("supplier-link-notes").value.trim() || null;
-        let supplierId;
+// ---------- כלי עזר ----------
 
-        if (newToggle.checked) {
-            const name = document.getElementById("supplier-new-name").value.trim();
-            if (!name) {
-                showToast("יש להזין שם ספק", "error");
-                return;
-            }
+function todayISO() {
+    return new Date().toISOString().slice(0, 10);
+}
 
-            const { data: newSupplier, error: supplierError } = await client.from("suppliers").insert({
-                name,
-                contact_person: document.getElementById("supplier-new-contact").value.trim() || null,
-                phone: document.getElementById("supplier-new-phone").value.trim() || null,
-                price_notes: document.getElementById("supplier-new-price-notes").value.trim() || null,
-            }).select().single();
+function formatDate(dateStr) {
+    if (!dateStr) return "-";
+    const [y, m, d] = dateStr.split("-");
+    return `${d}.${m}.${y}`;
+}
 
-            if (supplierError) {
-                showToast("שגיאה ביצירת הספק", "error");
-                return;
-            }
+function escapeHtml(str) {
+    if (str === null || str === undefined) return "";
+    return String(str)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+}
 
-            suppliersCache.push(newSupplier);
-            supplierId = newSupplier.id;
-        } else {
-            supplierId = document.getElementById("supplier-select").value;
-            if (!supplierId) {
-                showToast("יש לבחור ספק", "error");
-                return;
-            }
-        }
+function normalizePhone(phone) {
+    return (phone || "").replace(/\D/g, "");
+}
 
-        const { error } = await client.from("client_suppliers").insert({
-            client_id: currentClient.id,
-            supplier_id: supplierId,
-            notes,
-        });
+// בודקת אם טלפון כבר קיים בלידים או בלקוחות (אזהרה בלבד, לא חסימה)
+async function findPhoneDuplicate(phone, { excludeLeadId = null, excludeClientId = null } = {}) {
+    const normalized = normalizePhone(phone);
+    if (!normalized) return null;
+
+    const { data: leadMatches } = await client.from("leads").select("id, full_name, phone, status");
+    const { data: clientMatches } = await client.from("clients").select("id, full_name, phone, status");
+
+    const leadHit = (leadMatches || []).find(
+        (l) => normalizePhone(l.phone) === normalized && l.id !== excludeLeadId
+    );
+    if (leadHit) return { type: "lead", record: leadHit };
+
+    const clientHit = (clientMatches || []).find(
+        (c) => normalizePhone(c.phone) === normalized && c.id !== excludeClientId
+    );
+    if (clientHit) return { type: "client", record: clientHit };
+
+    return null;
+}
+
+function statusBadgeClass(status) {
+    if (status === LEAD_STATUS.OPEN) return "badge badge-open";
+    if (status === LEAD_STATUS.CONVERTED) return "badge badge-converted";
+    if (status === LEAD_STATUS.IRRELEVANT) return "badge badge-irrelevant";
+
+    const idx = CLIENT_STATUSES.indexOf(status);
+    if (idx === -1) return "badge";
+    if (idx <= 1) return "badge badge-open";
+    if (idx <= 7) return "badge badge-progress";
+    if (idx === 8) return "badge badge-nearing";
+    return "badge badge-closed";
+}
+
+function courtBadgeClass(court) {
+    return court === BALL_IN_COURT.AVISHAG ? "badge badge-court-avishag" : "badge badge-court-client";
+}
+
+// ---------- בדיקת חיבור (אבחון) ----------
+
+async function runConnectionTest() {
+    statusGrid.innerHTML = "";
+    statusMessage.textContent = "בודקת חיבור לכל הטבלאות...";
+
+    let successCount = 0;
+
+    for (const table of TABLES) {
+        const card = document.createElement("div");
+        card.className = "status-card pending";
+        card.innerHTML = `<span class="table-name">${table}</span><span class="table-state">בודקת...</span>`;
+        statusGrid.appendChild(card);
+
+        const { count, error } = await client
+            .from(table)
+            .select("*", { count: "exact", head: true });
 
         if (error) {
-            showToast("שגיאה בקישור הספק", "error");
-            return;
-        }
-
-        closeModal();
-        showToast("הספק קושר ללקוח", "ok");
-        await loadCurrentClientSuppliers(currentClient.id);
-        renderClientDetail();
-    });
-}
-
-async function unlinkSupplier(id) {
-    const { error } = await client.from("client_suppliers").delete().eq("id", id);
-    if (error) {
-        showToast("שגיאה בהסרת הקישור", "error");
-        return;
-    }
-
-    currentClientSuppliers = currentClientSuppliers.filter((cs) => cs.id !== id);
-    showToast("הקישור הוסר", "ok");
-    renderClientDetail();
-}
-
-// ============================================================
-// ---------- מסך "ספקים" גלובלי, חוצה-לקוחות (ניהול המאגר) ----------
-// ============================================================
-
-const suppliersView = document.getElementById("suppliers-view");
-const suppliersTableContainer = document.getElementById("suppliers-table-container");
-
-let suppliersSort = { column: "name", direction: "asc" };
-
-async function loadSuppliersView() {
-    suppliersTableContainer.innerHTML = `<p class="muted">טוענת ספקים...</p>`;
-
-    const { data, error } = await client.from("suppliers").select("*");
-
-    if (error) {
-        suppliersTableContainer.innerHTML = `<p class="error-text">שגיאה בטעינת ספקים: ${escapeHtml(error.message)}</p>`;
-        return;
-    }
-
-    suppliersCache = data || [];
-    suppliersLoaded = true;
-    renderSuppliersTable();
-}
-
-function renderSuppliersTable() {
-    let rows = [...suppliersCache];
-
-    rows.sort((a, b) => {
-        const va = a[suppliersSort.column] || "";
-        const vb = b[suppliersSort.column] || "";
-        const cmp = String(va).localeCompare(String(vb), "he");
-        return suppliersSort.direction === "asc" ? cmp : -cmp;
-    });
-
-    const arrow = (col) => (suppliersSort.column === col ? (suppliersSort.direction === "asc" ? " ▲" : " ▼") : "");
-    const addBtnHtml = `<button type="button" class="btn-primary" data-action="add-supplier">+ ספק חדש</button>`;
-
-    if (rows.length === 0) {
-        suppliersTableContainer.innerHTML = `
-            <div class="view-header">${addBtnHtml}</div>
-            <p class="muted">אין עדיין ספקים ברשימה. ניתן להוסיף ספק חדש כאן, או ישירות מכרטיס הלקוח בזמן קישור.</p>
-        `;
-        return;
-    }
-
-    const rowsHtml = rows.map((s) => `
-        <tr class="table-row" data-id="${s.id}">
-            <td>${escapeHtml(s.name)}</td>
-            <td>${escapeHtml(s.contact_person || "-")}</td>
-            <td class="ltr-cell">${escapeHtml(s.phone || "-")}</td>
-            <td>${escapeHtml(s.price_notes || "-")}</td>
-            <td>
-                <button type="button" class="btn-icon" data-action="edit-supplier" data-id="${s.id}" title="עריכה">✎</button>
-                <button type="button" class="btn-icon" data-action="delete-supplier" data-id="${s.id}" title="מחיקה">🗑</button>
-            </td>
-        </tr>
-    `).join("");
-
-    suppliersTableContainer.innerHTML = `
-        <div class="view-header">${addBtnHtml}</div>
-        <table class="data-table">
-            <thead>
-                <tr>
-                    <th class="sortable" data-sort="name">שם${arrow("name")}</th>
-                    <th class="sortable" data-sort="contact_person">איש קשר${arrow("contact_person")}</th>
-                    <th class="sortable" data-sort="phone">טלפון${arrow("phone")}</th>
-                    <th>הערות מחירון</th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody>${rowsHtml}</tbody>
-        </table>
-    `;
-}
-
-suppliersTableContainer.addEventListener("click", (e) => {
-    const sortHeader = e.target.closest("th.sortable");
-    if (sortHeader) {
-        const col = sortHeader.dataset.sort;
-        if (suppliersSort.column === col) {
-            suppliersSort.direction = suppliersSort.direction === "asc" ? "desc" : "asc";
+            card.className = "status-card error";
+            card.querySelector(".table-state").textContent = "שגיאה";
         } else {
-            suppliersSort = { column: col, direction: "asc" };
+            card.className = "status-card ok";
+            card.querySelector(".table-state").textContent = `${count} שורות`;
+            successCount++;
         }
-        renderSuppliersTable();
-        return;
     }
 
-    if (e.target.closest('[data-action="add-supplier"]')) {
-        openSupplierFormModal();
-        return;
-    }
-
-    const editBtn = e.target.closest('[data-action="edit-supplier"]');
-    if (editBtn) {
-        const supplier = suppliersCache.find((s) => s.id === editBtn.dataset.id);
-        if (supplier) openSupplierFormModal(supplier);
-        return;
-    }
-
-    const delBtn = e.target.closest('[data-action="delete-supplier"]');
-    if (delBtn) {
-        const id = delBtn.dataset.id;
-        openConfirmModal("האם למחוק את הספק לגמרי מהרשימה הגלובלית? הפעולה בלתי הפיכה.", async () => {
-            await deleteSupplier(id);
-        }, "כן, למחוק");
-        return;
-    }
-});
-
-function openSupplierFormModal(existing = null) {
-    const isEdit = !!existing;
-
-    openModal(`
-        <h2>${isEdit ? "עריכת ספק" : "ספק/קבלן חדש"}</h2>
-        <form id="supplier-form">
-            <label for="supplier-name">שם הספק/קבלן</label>
-            <input type="text" id="supplier-name" value="${isEdit ? escapeHtml(existing.name) : ""}" required />
-
-            <label for="supplier-contact">איש קשר</label>
-            <input type="text" id="supplier-contact" value="${isEdit ? escapeHtml(existing.contact_person || "") : ""}" />
-
-            <label for="supplier-phone">טלפון</label>
-            <input type="tel" id="supplier-phone" dir="ltr" value="${isEdit ? escapeHtml(existing.phone || "") : ""}" />
-
-            <label for="supplier-price-notes">הערות מחירון</label>
-            <textarea id="supplier-price-notes" rows="3">${isEdit ? escapeHtml(existing.price_notes || "") : ""}</textarea>
-
-            <div class="modal-actions">
-                <button type="button" class="btn-ghost" id="supplier-form-cancel-btn">ביטול</button>
-                <button type="submit" class="btn-primary">שמירה</button>
-            </div>
-        </form>
-    `);
-
-    document.getElementById("supplier-form-cancel-btn").addEventListener("click", closeModal);
-
-    document.getElementById("supplier-form").addEventListener("submit", async (e) => {
-        e.preventDefault();
-
-        const payload = {
-            name: document.getElementById("supplier-name").value.trim(),
-            contact_person: document.getElementById("supplier-contact").value.trim() || null,
-            phone: document.getElementById("supplier-phone").value.trim() || null,
-            price_notes: document.getElementById("supplier-price-notes").value.trim() || null,
-        };
-
-        if (!payload.name) {
-            showToast("יש להזין שם ספק", "error");
-            return;
-        }
-
-        if (isEdit) {
-            const { error } = await client.from("suppliers").update(payload).eq("id", existing.id);
-            if (error) {
-                showToast("שגיאה בשמירת הספק", "error");
-                return;
-            }
-            Object.assign(existing, payload);
-            showToast("הספק עודכן", "ok");
-        } else {
-            const { data: newSupplier, error } = await client.from("suppliers").insert(payload).select().single();
-            if (error) {
-                showToast("שגיאה ביצירת הספק", "error");
-                return;
-            }
-            suppliersCache.push(newSupplier);
-            showToast("הספק נוסף", "ok");
-        }
-
-        closeModal();
-        renderSuppliersTable();
-    });
+    statusMessage.textContent = successCount === TABLES.length
+        ? `החיבור תקין - כל ${TABLES.length} הטבלאות נגישות.`
+        : `${successCount} מתוך ${TABLES.length} טבלאות נגישות. בדקי שהרצת את schema.sql במלואו.`;
 }
 
-async function deleteSupplier(id) {
-    const { error } = await client.from("suppliers").delete().eq("id", id);
-    if (error) {
-        // כנראה נכשל כי הספק עדיין מקושר ללקוח אחד או יותר (foreign key constraint ב-client_suppliers)
-        showToast("לא ניתן למחוק - הספק מקושר ללקוח אחד או יותר. יש להסיר קודם את הקישורים בכרטיסי הלקוחות.", "error");
-        return;
-    }
-
-    suppliersCache = suppliersCache.filter((s) => s.id !== id);
-    showToast("הספק נמחק", "ok");
-    renderSuppliersTable();
-}
+// קריאה בפועל ל-checkSession() מתבצעת רק בסוף index.html, אחרי טעינת כל קבצי ה-JS (ראו שם, ותיעוד בהערה שם).
