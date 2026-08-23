@@ -212,15 +212,8 @@ function renderClientTasksSection() {
             </div>
         `).join("");
 
-    return `
-        <section class="detail-section">
-            <div class="section-header">
-                <h3>משימות</h3>
-                <button type="button" class="btn-small btn-ghost" data-action="add-task">+ הוספת משימה</button>
-            </div>
-            ${bodyHtml}
-        </section>
-    `;
+    const extraHeader = `<button type="button" class="btn-small btn-ghost" data-action="add-task">+ הוספת משימה</button>`;
+    return renderCollapsibleSection("tasks", "משימות", bodyHtml, { extraHeaderHtml: extraHeader });
 }
 
 function renderTaskRow(t) {
