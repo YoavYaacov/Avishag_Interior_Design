@@ -112,9 +112,10 @@ async function ensureSuppliersLoaded() {
 async function openSupplierLinkModal() {
     await ensureSuppliersLoaded();
 
-    // ספקים שכבר מקושרים ללקוח הזה לא מוצגים שוב ברשימת "ספק קיים", כדי למנוע קישור כפול
-    const alreadyLinkedIds = new Set(currentClientSuppliers.map((cs) => cs.supplier_id));
-    const availableSuppliers = suppliersCache.filter((s) => !alreadyLinkedIds.has(s.id));
+    // ✅ הוחלט: אפשר לקשר את אותו ספק כמה פעמים לאותו לקוח (למשל כמה הזמנות
+    // נפרדות מאותה חברה, כל אחת עם הערה משלה) - לכן כל הספקים במאגר מוצגים
+    // תמיד לבחירה, גם אם חלקם כבר מקושרים ללקוח הזה.
+    const availableSuppliers = suppliersCache;
 
     const supplierOptions = availableSuppliers.map(
         (s) => `<option value="${s.id}">${escapeHtml(s.name)}</option>`
@@ -133,7 +134,7 @@ async function openSupplierLinkModal() {
                 <select id="supplier-select">${supplierOptions}</select>
             </div>
 
-            ${availableSuppliers.length === 0 ? `<p class="muted">אין כרגע ספקים זמינים לבחירה (כולם כבר מקושרים, או שהמאגר ריק) - ניתן להוסיף ספק חדש.</p>` : ""}
+            ${availableSuppliers.length === 0 ? `<p class="muted">המאגר הגלובלי ריק עדיין - ניתן להוסיף כאן את הספק הראשון.</p>` : ""}
 
             <div id="supplier-new-block" class="hidden">
                 <label for="supplier-new-name">שם הספק/קבלן</label>
