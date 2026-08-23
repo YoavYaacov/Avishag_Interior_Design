@@ -26,14 +26,14 @@ function renderCommissionSection() {
     const rows = currentClientCommissions.map((c) => renderCommissionRow(c)).join("");
 
     const body = currentClientCommissions.length ? `
-        <table class="data-table">
+        <table class="data-table commission-table">
             <thead>
                 <tr>
                     <th>חברה</th>
                     <th>איש קשר בסניף</th>
-                    <th>סכום עסקה (₪)</th>
-                    <th>אחוז עמלה (%)</th>
-                    <th>סכום עמלה (₪)</th>
+                    <th>סכום עסקה</th>
+                    <th>אחוז</th>
+                    <th>סכום עמלה</th>
                     <th>סטטוס</th>
                     <th></th>
                 </tr>
