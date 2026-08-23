@@ -30,6 +30,10 @@ const TASK_STAGE_ORDER = [
 
 const tasksTableContainer = document.getElementById("tasks-table-container");
 
+document.querySelector('[data-action="refresh-tasks"]').addEventListener("click", () => {
+    loadTasksView();
+});
+
 let globalTasksCache = [];
 let globalTasksClientNames = {}; // client_id -> full_name
 let globalTasksSort = { column: "due_date", direction: "asc" };
@@ -37,8 +41,12 @@ let globalTasksSort = { column: "due_date", direction: "asc" };
 async function loadTasksView() {
     tasksTableContainer.innerHTML = `<p class="muted">טוענת משימות...</p>`;
 
+    // מסך "משימות" הגלובלי מציג רק משימות פתוחות - זה מכוון.
+    // סימון משימה כ"הושלם" לא מעלים אותה מהטבלה מיידית (כדי שהלחיצה על
+    // הצ'קבוקס לא תיראה כאילו "קפצה" השורה מתחת לעכבר), אלא רק כשהמסך
+    // נטען מחדש (לחיצה על כפתור הרענון, או מעבר ללשונית אחרת וחזרה).
     const [{ data: tasksData, error: tasksError }, { data: clientsData }] = await Promise.all([
-        client.from("tasks").select("*"),
+        client.from("tasks").select("*").eq("status", TASK_STATUS.OPEN),
         client.from("clients").select("id, full_name"),
     ]);
 
