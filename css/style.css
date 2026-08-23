@@ -830,6 +830,54 @@ input.switch:checked::before {
     margin-top: 12px;
 }
 
+/* ============================================================
+   הוספה לקובץ css/style.css הקיים - תיקון אסתטי לטבלת "עמלות מחברות עיצוב"
+   בכרטיס הלקוח (שדות היו חתוכים, וכפתור הרענון ליד סכום העמלה קפץ לשורה
+   נפרדת ויצר קפיצת גובה בשורה).
+   הדביקי את הקטע הזה בסוף css/style.css.
+   ============================================================ */
+
+.commission-table {
+    table-layout: auto;
+}
+
+.commission-table input,
+.commission-table select {
+    width: 100%;
+    min-width: 64px;
+    box-sizing: border-box;
+}
+
+/* עמודות "חברה" ו"איש קשר בסניף" - טקסט חופשי, צריך יותר רוחב */
+.commission-table td:nth-child(1) input,
+.commission-table td:nth-child(2) input {
+    min-width: 110px;
+}
+
+/* עמודת "סטטוס" - כדי ש"ממתין"/"התקבל" לא ייחתכו */
+.commission-table td:nth-child(6) select {
+    min-width: 90px;
+}
+
+/* תא סכום העמלה + כפתור החישוב מחדש - זה לצד זה, לא זה מתחת לזה */
+.commission-amount-cell {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: nowrap;
+}
+
+.commission-amount-cell input {
+    flex: 1 1 auto;
+    min-width: 60px;
+}
+
+.commission-amount-cell .btn-icon {
+    flex: 0 0 auto;
+    padding: 2px 8px;
+    white-space: nowrap;
+}
+
 /* מונע מכפתורים בכותרת (עריכה / הוספה) להיראות כמו חלק מאזור הלחיצה על הכיווץ עצמו */
 .collapsible-header .btn-small {
     flex: 0 0 auto;
