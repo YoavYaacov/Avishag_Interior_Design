@@ -110,6 +110,7 @@ function switchView(viewName) {
     if (viewName === "tasks") loadTasksView();
     if (viewName === "payments") loadPaymentsView();
     if (viewName === "commission") loadCommissionView();
+    if (viewName === "suppliers") loadSuppliersView();
     if (viewName === "diagnostics") runConnectionTest();
 }
 
