@@ -39,6 +39,7 @@
             <button class="nav-btn" data-view="clients">לקוחות</button>
             <button class="nav-btn" data-view="tasks">משימות</button>
             <button class="nav-btn" data-view="payments">תשלומים</button>
+            <button class="nav-btn" data-view="commission">עמלות</button>
             <button class="nav-btn" data-view="tracks">מסלולים</button>
             <button class="nav-btn" data-view="diagnostics">בדיקת מערכת</button>
         </nav>
@@ -85,6 +86,14 @@
                 <div id="payments-table-container"></div>
             </section>
 
+            <!-- ===== עמלות מחברות עיצוב (COMMISSION_INCOME) - חוצה-לקוחות ===== -->
+            <section id="commission-view" class="app-view hidden">
+                <div class="view-header">
+                    <h2>עמלות</h2>
+                </div>
+                <div id="commission-table-container"></div>
+            </section>
+
             <!-- ===== מסלולים (TRACKS) ===== -->
             <section id="tracks-view" class="app-view hidden">
                 <div class="view-header">
@@ -118,6 +127,16 @@
     <script src="js/clients.js"></script>
     <script src="js/photos.js"></script>
     <script src="js/payments.js"></script>
+    <script src="js/commission.js"></script>
     <script src="js/tasks.js"></script>
+
+    <!--
+        תיקון באג: קריאה ל-checkSession() נעשית כאן, אחרי שכל קבצי ה-JS נטענו,
+        ולא בסוף js/app.js. הסיבה: getSession() בד"כ מסתיים מהר (בלי קריאת רשת),
+        ואם הקריאה הראשונית ל-checkSession() נעשית מתוך app.js עצמו, ה-switchView("leads")
+        שבתוכה עלול לרוץ לפני ש-js/leads.js נטען - מה שגורם למסך "פניות" להיפתח ריק
+        עד שלוחצים על הטאב שוב.
+    -->
+    <script>checkSession();</script>
 </body>
 </html>
