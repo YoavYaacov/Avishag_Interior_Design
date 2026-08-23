@@ -282,8 +282,6 @@ function renderClientDetail() {
         <div class="detail-header">
             <button class="btn-ghost" data-action="back-to-clients">→ חזרה לרשימה</button>
             <h2>${escapeHtml(c.full_name)}</h2>
-            <span class="${statusBadgeClass(c.status)}">${escapeHtml(c.status)}</span>
-            <span class="${courtBadgeClass(c.ball_in_court)}">אצל: ${escapeHtml(c.ball_in_court)}</span>
         </div>
 
         ${renderBasicSection(c)}
@@ -387,8 +385,14 @@ function renderStatusSection(c) {
     const editing = editingSections.has("status");
 
     if (!editing) {
+        const body = `
+            <div class="detail-grid">
+                <div><span class="detail-label">סטטוס</span><span class="${statusBadgeClass(c.status)}">${escapeHtml(c.status)}</span></div>
+                <div><span class="detail-label">אצל מי הכדור</span><span class="${courtBadgeClass(c.ball_in_court)}">${escapeHtml(c.ball_in_court)}</span></div>
+            </div>
+        `;
         const extraHeader = `<button class="btn-small btn-ghost" data-action="edit-status">עריכה</button>`;
-        return renderCollapsibleSection("status", "סטטוס ותהליך", "", { extraHeaderHtml: extraHeader });
+        return renderCollapsibleSection("status", "סטטוס ותהליך", body, { extraHeaderHtml: extraHeader });
     }
 
     const statusOptions = CLIENT_STATUSES.map(
