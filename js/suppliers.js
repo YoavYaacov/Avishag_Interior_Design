@@ -1,7 +1,7 @@
 // ============================================================
 // ספקים/קבלנים (SUPPLIERS + CLIENT_SUPPLIERS) - שלב 10
 // מאגר גלובלי של ספקים (SUPPLIERS) + קישור פר לקוח (CLIENT_SUPPLIERS, one-to-many).
-// עריכת פרטי הספק עצמו (שם/איש קשר/טלפון/הערות מחירון) נעשית רק דרך המאגר
+// עריכת פרטי הספק עצמו (שם/איש קשר/טלפון/הערות) נעשית רק דרך המאגר
 // הגלובלי - "מקור אמת" יחיד. בכרטיס הלקוח מקשרים/מנתקים ספק, ומזינים הערה
 // חופשית ספציפית ללקוח (מה הוזמן ממנו בפרויקט הזה).
 // חייב להיטען אחרי js/clients.js (הקטע בכרטיס הלקוח משתמש ב-clientDetailView).
@@ -36,7 +36,7 @@ function renderSuppliersSection() {
                     <th>שם הספק/קבלן</th>
                     <th>איש קשר</th>
                     <th>טלפון</th>
-                    <th>מה הוזמן / הערות</th>
+                    <th>מה הוזמן</th>
                     <th></th>
                 </tr>
             </thead>
@@ -143,11 +143,11 @@ async function openSupplierLinkModal() {
                 <input type="text" id="supplier-new-contact" />
                 <label for="supplier-new-phone">טלפון</label>
                 <input type="tel" id="supplier-new-phone" dir="ltr" />
-                <label for="supplier-new-price-notes">הערות מחירון</label>
+                <label for="supplier-new-price-notes">הערות</label>
                 <textarea id="supplier-new-price-notes" rows="2"></textarea>
             </div>
 
-            <label for="supplier-link-notes">מה הוזמן / הערות (ספציפי ללקוח זה)</label>
+            <label for="supplier-link-notes">מה הוזמן (ספציפי ללקוח זה)</label>
             <textarea id="supplier-link-notes" rows="2"></textarea>
 
             <div class="modal-actions">
@@ -306,7 +306,7 @@ function renderSuppliersTable() {
                     <th class="sortable" data-sort="name">שם${arrow("name")}</th>
                     <th class="sortable" data-sort="contact_person">איש קשר${arrow("contact_person")}</th>
                     <th class="sortable" data-sort="phone">טלפון${arrow("phone")}</th>
-                    <th>הערות מחירון</th>
+                    <th>הערות</th>
                     <th></th>
                 </tr>
             </thead>
@@ -365,7 +365,7 @@ function openSupplierFormModal(existing = null) {
             <label for="supplier-phone">טלפון</label>
             <input type="tel" id="supplier-phone" dir="ltr" value="${isEdit ? escapeHtml(existing.phone || "") : ""}" />
 
-            <label for="supplier-price-notes">הערות מחירון</label>
+            <label for="supplier-price-notes">הערות</label>
             <textarea id="supplier-price-notes" rows="3">${isEdit ? escapeHtml(existing.price_notes || "") : ""}</textarea>
 
             <div class="modal-actions">
