@@ -361,7 +361,7 @@ function renderBasicSection(c) {
             </div>
         `;
         const extraHeader = `<button class="btn-small btn-ghost" data-action="edit-basic">עריכה</button>`;
-        return renderCollapsibleSection("basic", "פרטים בסיסיים", body, { extraHeaderHtml: extraHeader });
+        return renderCollapsibleSection("basic", "פרטים אישיים", body, { extraHeaderHtml: extraHeader });
     }
 
     const body = `
@@ -378,7 +378,7 @@ function renderBasicSection(c) {
             </div>
         </form>
     `;
-    return renderCollapsibleSection("basic", "פרטים בסיסיים", body, { forceOpen: true });
+    return renderCollapsibleSection("basic", "פרטים אישיים", body, { forceOpen: true });
 }
 
 // ---------- סטטוס ואצל מי הכדור ----------
@@ -394,7 +394,7 @@ function renderStatusSection(c) {
             </div>
         `;
         const extraHeader = `<button class="btn-small btn-ghost" data-action="edit-status">עריכה</button>`;
-        return renderCollapsibleSection("status", "סטטוס ותהליך", body, { extraHeaderHtml: extraHeader });
+        return renderCollapsibleSection("status", "סטטוס פרויקט", body, { extraHeaderHtml: extraHeader });
     }
 
     const statusOptions = CLIENT_STATUSES.map(
@@ -416,7 +416,7 @@ function renderStatusSection(c) {
             </div>
         </form>
     `;
-    return renderCollapsibleSection("status", "סטטוס ותהליך", body, { forceOpen: true });
+    return renderCollapsibleSection("status", "סטטוס פרויקט", body, { forceOpen: true });
 }
 
 // ---------- פרטי הבית ----------
@@ -436,7 +436,7 @@ function renderHomeSection(c, roomTypes, familyTraits, preferredStyle) {
             </div>
         `;
         const extraHeader = `<button class="btn-small btn-ghost" data-action="edit-home">עריכה</button>`;
-        return renderCollapsibleSection("home", "פרטי הבית", body, { extraHeaderHtml: extraHeader });
+        return renderCollapsibleSection("home", "פרטי הנכס", body, { extraHeaderHtml: extraHeader });
     }
 
     // מצב עריכה - עובדים על עותק זמני (homeDraft) עד לשמירה
@@ -526,7 +526,7 @@ function renderHomeSection(c, roomTypes, familyTraits, preferredStyle) {
             </div>
         </div>
     `;
-    return renderCollapsibleSection("home", "פרטי הבית", body, { forceOpen: true });
+    return renderCollapsibleSection("home", "פרטי הנכס", body, { forceOpen: true });
 }
 
 // ---------- אירועים בכרטיס הלקוח (delegation יחיד) ----------
