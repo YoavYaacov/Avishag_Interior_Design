@@ -14,9 +14,11 @@ let currentClientCommissions = [];
 // ============================================================
 
 async function loadCurrentClientCommissions(clientId) {
+    await ensureSuppliersLoaded();
+
     const { data, error } = await client
         .from("commission_income")
-        .select("*")
+        .select("*, suppliers(name)")
         .eq("client_id", clientId);
 
     currentClientCommissions = error ? [] : (data || []);
@@ -29,7 +31,7 @@ function renderCommissionSection() {
         <table class="data-table commission-table">
             <thead>
                 <tr>
-                    <th>חברה</th>
+                    <th>ספק</th>
                     <th>איש קשר בסניף</th>
                     <th>סכום עסקה</th>
                     <th>אחוז</th>
@@ -47,9 +49,18 @@ function renderCommissionSection() {
 }
 
 function renderCommissionRow(c) {
+    const options = suppliersCache.map(
+        (s) => `<option value="${s.id}" ${c.supplier_id === s.id ? "selected" : ""}>${escapeHtml(s.name)}</option>`
+    ).join("");
+
     return `
         <tr class="table-row" data-id="${c.id}">
-            <td><input type="text" value="${escapeHtml(c.company_name || "")}" data-action="commission-field" data-field="company_name" data-id="${c.id}" /></td>
+            <td>
+                <select data-action="commission-field" data-field="supplier_id" data-id="${c.id}">
+                    <option value="">- בחרי ספק -</option>
+                    ${options}
+                </select>
+            </td>
             <td><input type="text" value="${escapeHtml(c.branch_contact || "")}" data-action="commission-field" data-field="branch_contact" data-id="${c.id}" /></td>
             <td><input type="number" min="0" step="1" value="${c.deal_amount ?? ""}" data-action="commission-field" data-field="deal_amount" data-id="${c.id}" /></td>
             <td><input type="number" min="0" step="0.1" value="${c.commission_percent ?? ""}" data-action="commission-field" data-field="commission_percent" data-id="${c.id}" /></td>
@@ -72,7 +83,7 @@ function renderCommissionRow(c) {
 
 clientDetailView.addEventListener("click", async (e) => {
     if (e.target.closest('[data-action="add-commission"]')) {
-        openCommissionFormModal();
+        await openCommissionFormModal();
         return;
     }
 
@@ -105,7 +116,10 @@ clientDetailView.addEventListener("change", async (e) => {
     if (["deal_amount", "commission_percent", "commission_amount"].includes(field)) {
         value = value === "" ? null : Number(value);
     }
-    if (["company_name", "branch_contact"].includes(field) && value.trim() === "") {
+    if (field === "supplier_id" && value === "") {
+        value = null;
+    }
+    if (field === "branch_contact" && value.trim() === "") {
         value = null;
     }
 
@@ -121,12 +135,40 @@ clientDetailView.addEventListener("change", async (e) => {
 
 // ---------- פעולות בכרטיס הלקוח ----------
 
-function openCommissionFormModal() {
+async function openCommissionFormModal() {
+    await ensureSuppliersLoaded();
+
+    const supplierOptions = suppliersCache.map(
+        (s) => `<option value="${s.id}">${escapeHtml(s.name)}</option>`
+    ).join("");
+
     openModal(`
         <h2>הוספת עמלה</h2>
         <form id="commission-form">
-            <label for="commission-company">שם חברת העיצוב</label>
-            <input type="text" id="commission-company" required />
+            <label class="toggle-row">
+                <span>ספק חדש (לא ברשימה)</span>
+                <input type="checkbox" class="switch" id="commission-new-toggle" ${suppliersCache.length === 0 ? "checked disabled" : ""} />
+            </label>
+
+            <div id="commission-existing-block" ${suppliersCache.length === 0 ? 'class="hidden"' : ""}>
+                <label for="commission-supplier">ספק / חברת עיצוב</label>
+                <select id="commission-supplier">
+                    <option value="">- בחרי ספק -</option>
+                    ${supplierOptions}
+                </select>
+            </div>
+            ${suppliersCache.length === 0 ? `<p class="muted">המאגר הגלובלי ריק עדיין - ניתן להוסיף כאן את הספק הראשון.</p>` : ""}
+
+            <div id="commission-new-block" class="${suppliersCache.length === 0 ? "" : "hidden"}">
+                <label for="commission-new-name">שם הספק/חברה</label>
+                <input type="text" id="commission-new-name" />
+                <label for="commission-new-contact">איש קשר</label>
+                <input type="text" id="commission-new-contact" />
+                <label for="commission-new-phone">טלפון</label>
+                <input type="tel" id="commission-new-phone" dir="ltr" />
+                <label for="commission-new-price-notes">הערות</label>
+                <textarea id="commission-new-price-notes" rows="2"></textarea>
+            </div>
 
             <label for="commission-contact">איש קשר בסניף</label>
             <input type="text" id="commission-contact" />
@@ -144,20 +186,59 @@ function openCommissionFormModal() {
         </form>
     `);
 
+    const newToggle = document.getElementById("commission-new-toggle");
+    const existingBlock = document.getElementById("commission-existing-block");
+    const newBlock = document.getElementById("commission-new-block");
+
+    newToggle.addEventListener("change", () => {
+        existingBlock.classList.toggle("hidden", newToggle.checked);
+        newBlock.classList.toggle("hidden", !newToggle.checked);
+    });
+
     document.getElementById("commission-cancel-btn").addEventListener("click", closeModal);
 
     document.getElementById("commission-form").addEventListener("submit", async (e) => {
         e.preventDefault();
 
-        const company_name = document.getElementById("commission-company").value.trim();
         const branch_contact = document.getElementById("commission-contact").value.trim() || null;
         const deal_amount = Number(document.getElementById("commission-deal").value);
         const commission_percent = Number(document.getElementById("commission-percent").value);
         const commission_amount = Math.round((deal_amount * commission_percent) / 100);
 
+        let supplier_id;
+
+        if (newToggle.checked) {
+            const name = document.getElementById("commission-new-name").value.trim();
+            if (!name) {
+                showToast("יש להזין שם ספק", "error");
+                return;
+            }
+
+            const { data: newSupplier, error: supplierError } = await client.from("suppliers").insert({
+                name,
+                contact_person: document.getElementById("commission-new-contact").value.trim() || null,
+                phone: document.getElementById("commission-new-phone").value.trim() || null,
+                price_notes: document.getElementById("commission-new-price-notes").value.trim() || null,
+            }).select().single();
+
+            if (supplierError) {
+                showToast("שגיאה ביצירת הספק", "error");
+                return;
+            }
+
+            suppliersCache.push(newSupplier);
+            supplier_id = newSupplier.id;
+        } else {
+            supplier_id = document.getElementById("commission-supplier").value;
+            if (!supplier_id) {
+                showToast("יש לבחור ספק", "error");
+                return;
+            }
+        }
+
         const { error } = await client.from("commission_income").insert({
             client_id: currentClient.id,
-            company_name,
+            supplier_id,
             branch_contact,
             deal_amount,
             commission_percent,
@@ -224,7 +305,7 @@ async function loadCommissionView() {
 
     const { data, error } = await client
         .from("commission_income")
-        .select("*, clients(full_name)");
+        .select("*, clients(full_name), suppliers(name)");
 
     if (error) {
         commissionTableContainer.innerHTML = `<p class="error-text">שגיאה בטעינת עמלות: ${escapeHtml(error.message)}</p>`;
@@ -237,6 +318,7 @@ async function loadCommissionView() {
 
 function commissionSortValue(row, column) {
     if (column === "client") return row.clients ? row.clients.full_name : "";
+    if (column === "supplier") return row.suppliers ? row.suppliers.name : "";
     if (column === "status") return row.status === COMMISSION_STATUS.PENDING ? 0 : 1;
     if (["deal_amount", "commission_percent", "commission_amount"].includes(column)) return Number(row[column] || 0);
     return row[column] || "";
@@ -264,7 +346,7 @@ function renderCommissionTable() {
     const rowsHtml = rows.map((c) => `
         <tr class="table-row clickable-row" data-action="open-client-from-commission" data-client-id="${c.client_id}">
             <td>${escapeHtml(c.clients ? c.clients.full_name : "-")}</td>
-            <td>${escapeHtml(c.company_name || "-")}</td>
+            <td>${escapeHtml(c.suppliers ? c.suppliers.name : "-")}</td>
             <td>${escapeHtml(c.branch_contact || "-")}</td>
             <td>${c.deal_amount != null ? "₪" + Number(c.deal_amount).toLocaleString("he-IL") : "-"}</td>
             <td>${c.commission_percent != null ? c.commission_percent + "%" : "-"}</td>
@@ -278,7 +360,7 @@ function renderCommissionTable() {
             <thead>
                 <tr>
                     <th class="sortable" data-sort="client">לקוח${arrow("client")}</th>
-                    <th class="sortable" data-sort="company_name">חברה${arrow("company_name")}</th>
+                    <th class="sortable" data-sort="supplier">ספק${arrow("supplier")}</th>
                     <th class="sortable" data-sort="branch_contact">איש קשר${arrow("branch_contact")}</th>
                     <th class="sortable" data-sort="deal_amount">סכום עסקה${arrow("deal_amount")}</th>
                     <th class="sortable" data-sort="commission_percent">אחוז${arrow("commission_percent")}</th>
