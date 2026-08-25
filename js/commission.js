@@ -33,6 +33,7 @@ function renderCommissionSection() {
                 <tr>
                     <th>ספק</th>
                     <th>איש קשר בסניף</th>
+                    <th>טלפון</th>
                     <th>סכום עסקה</th>
                     <th>אחוז</th>
                     <th>סכום עמלה</th>
@@ -62,6 +63,7 @@ function renderCommissionRow(c) {
                 </select>
             </td>
             <td><input type="text" value="${escapeHtml(c.branch_contact || "")}" data-action="commission-field" data-field="branch_contact" data-id="${c.id}" /></td>
+            <td><input type="tel" dir="ltr" value="${escapeHtml(c.branch_contact_phone || "")}" data-action="commission-field" data-field="branch_contact_phone" data-id="${c.id}" /></td>
             <td><input type="number" min="0" step="1" value="${c.deal_amount ?? ""}" data-action="commission-field" data-field="deal_amount" data-id="${c.id}" /></td>
             <td><input type="number" min="0" step="0.1" value="${c.commission_percent ?? ""}" data-action="commission-field" data-field="commission_percent" data-id="${c.id}" /></td>
             <td class="commission-amount-cell">
@@ -122,6 +124,9 @@ clientDetailView.addEventListener("change", async (e) => {
     if (field === "branch_contact" && value.trim() === "") {
         value = null;
     }
+    if (field === "branch_contact_phone" && value.trim() === "") {
+        value = null;
+    }
 
     const { error } = await client.from("commission_income").update({ [field]: value }).eq("id", id);
     if (error) {
@@ -173,6 +178,9 @@ async function openCommissionFormModal() {
             <label for="commission-contact">איש קשר בסניף</label>
             <input type="text" id="commission-contact" />
 
+            <label for="commission-contact-phone">טלפון איש הקשר</label>
+            <input type="tel" id="commission-contact-phone" dir="ltr" />
+
             <label for="commission-deal">סכום העסקה שנסגרה (₪)</label>
             <input type="number" id="commission-deal" min="0" step="1" required />
 
@@ -201,6 +209,7 @@ async function openCommissionFormModal() {
         e.preventDefault();
 
         const branch_contact = document.getElementById("commission-contact").value.trim() || null;
+        const branch_contact_phone = document.getElementById("commission-contact-phone").value.trim() || null;
         const deal_amount = Number(document.getElementById("commission-deal").value);
         const commission_percent = Number(document.getElementById("commission-percent").value);
         const commission_amount = Math.round((deal_amount * commission_percent) / 100);
@@ -240,6 +249,7 @@ async function openCommissionFormModal() {
             client_id: currentClient.id,
             supplier_id,
             branch_contact,
+            branch_contact_phone,
             deal_amount,
             commission_percent,
             commission_amount,
@@ -345,9 +355,10 @@ function renderCommissionTable() {
 
     const rowsHtml = rows.map((c) => `
         <tr class="table-row clickable-row" data-action="open-client-from-commission" data-client-id="${c.client_id}">
-            <td>${escapeHtml(c.clients ? c.clients.full_name : "-")}</td>
             <td>${escapeHtml(c.suppliers ? c.suppliers.name : "-")}</td>
+            <td>${escapeHtml(c.clients ? c.clients.full_name : "-")}</td>
             <td>${escapeHtml(c.branch_contact || "-")}</td>
+            <td class="ltr-cell">${escapeHtml(c.branch_contact_phone || "-")}</td>
             <td>${c.deal_amount != null ? "₪" + Number(c.deal_amount).toLocaleString("he-IL") : "-"}</td>
             <td>${c.commission_percent != null ? c.commission_percent + "%" : "-"}</td>
             <td>${c.commission_amount != null ? "₪" + Number(c.commission_amount).toLocaleString("he-IL") : "-"}</td>
@@ -359,9 +370,10 @@ function renderCommissionTable() {
         <table class="data-table">
             <thead>
                 <tr>
-                    <th class="sortable" data-sort="client">לקוח${arrow("client")}</th>
                     <th class="sortable" data-sort="supplier">ספק${arrow("supplier")}</th>
+                    <th class="sortable" data-sort="client">לקוח${arrow("client")}</th>
                     <th class="sortable" data-sort="branch_contact">איש קשר${arrow("branch_contact")}</th>
+                    <th>טלפון</th>
                     <th class="sortable" data-sort="deal_amount">סכום עסקה${arrow("deal_amount")}</th>
                     <th class="sortable" data-sort="commission_percent">אחוז${arrow("commission_percent")}</th>
                     <th class="sortable" data-sort="commission_amount">סכום עמלה${arrow("commission_amount")}</th>
@@ -373,7 +385,7 @@ function renderCommissionTable() {
     `;
 }
 
-commissionTableContainer.addEventListener("click", (e) => {
+commissionTableContainer.addEventListener("click", async (e) => {
     const sortHeader = e.target.closest("th.sortable");
     if (sortHeader) {
         const col = sortHeader.dataset.sort;
@@ -388,7 +400,10 @@ commissionTableContainer.addEventListener("click", (e) => {
 
     const row = e.target.closest('[data-action="open-client-from-commission"]');
     if (row) {
-        switchView("clients");
-        openClientDetail(row.dataset.clientId);
+        // ה-await כאן מכוון: אם switchView מבצע רינדור/טעינה אסינכרוניים משלו,
+        // חייבים לחכות שהוא יסיים לפני שפותחים את כרטיס הלקוח הספציפי - אחרת
+        // הרינדור המאוחר של switchView "דורס" את תצוגת הכרטיס וחוזר לרשימה.
+        await switchView("clients");
+        await openClientDetail(row.dataset.clientId);
     }
 });
