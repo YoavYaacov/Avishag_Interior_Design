@@ -45,7 +45,7 @@ function renderSuppliersSection() {
     ` : `<p class="muted">אין עדיין ספקים מקושרים ללקוח זה.</p>`;
 
     const extraHeader = `<button type="button" class="btn-small btn-primary" data-action="add-supplier-link">+ קישור ספק</button>`;
-    return renderCollapsibleSection("suppliers", "ספקים/קבלנים", body, { extraHeaderHtml: extraHeader });
+    return renderCollapsibleSection("suppliers", "פריטים שנבחרו", body, { extraHeaderHtml: extraHeader });
 }
 
 function renderSupplierLinkRow(cs) {
