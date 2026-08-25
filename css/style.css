@@ -899,3 +899,21 @@ input.switch:checked::before {
     min-width: 140px;
     box-sizing: border-box;
 }
+
+/* ============================================================
+   תיקון אסתטי (25.8.2026) - שדות עריכה בתוך טבלאות (data-table)
+   הכללים הגלובליים ל-input/select/textarea (למעלה בקובץ) מיועדים
+   לטפסים אנכיים: padding גדול (11px) ו-margin-bottom של 18px.
+   בתוך תא טבלה זה יוצר מראה "עקום"/גס - השדה לא ממורכז בשורה
+   ותופס יותר גובה מהצריך. הכלל הבא מבטל את זה בכל הטבלאות
+   הניתנות לעריכה בממשק (עמלות, ספקים, תשלומים וכו').
+   ============================================================ */
+
+.data-table input,
+.data-table select,
+.data-table textarea {
+    margin-bottom: 0;
+    padding: 6px 8px;
+    font-size: 0.88rem;
+    border-radius: 3px;
+}
