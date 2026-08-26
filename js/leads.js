@@ -42,6 +42,7 @@ function renderLeadsTable() {
         } else if (lead.status === LEAD_STATUS.IRRELEVANT) {
             actions += `<button class="btn-small btn-ghost" data-action="reopen-lead" data-id="${lead.id}">החזרה לפתוח</button>`;
         }
+        actions += `<button class="btn-icon" data-action="delete-lead" data-id="${lead.id}" title="מחיקה">🗑</button>`;
 
         return `
             <tr class="${rowClass}">
@@ -82,7 +83,23 @@ leadsTableContainer.addEventListener("click", async (e) => {
     if (btn.dataset.action === "convert-lead") openConvertToClientForm(lead);
     if (btn.dataset.action === "mark-irrelevant") await setLeadStatus(id, LEAD_STATUS.IRRELEVANT);
     if (btn.dataset.action === "reopen-lead") await setLeadStatus(id, LEAD_STATUS.OPEN);
+    if (btn.dataset.action === "delete-lead") {
+        openConfirmModal("האם למחוק את הפנייה לגמרי? הפעולה בלתי הפיכה.", async () => {
+            await deleteLead(id);
+        }, "כן, למחוק");
+    }
 });
+
+async function deleteLead(id) {
+    const { error } = await client.from("leads").delete().eq("id", id);
+    if (error) {
+        showToast("שגיאה במחיקת הפנייה", "error");
+        return;
+    }
+    leadsCache = leadsCache.filter((l) => l.id !== id);
+    showToast("הפנייה נמחקה", "ok");
+    renderLeadsTable();
+}
 
 async function setLeadStatus(id, status) {
     const { error } = await client.from("leads").update({ status }).eq("id", id);
