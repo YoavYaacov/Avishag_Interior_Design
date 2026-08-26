@@ -38,6 +38,12 @@ const TRACK_PAYMENT_STRUCTURE = {
 // שמות הפעימות שנוצרות/נמחקות אוטומטית ע"י תבנית מסלול (לא נוגע ב"ייעוץ" ולא בתוספות)
 const TRACK_GENERATED_PHASE_NAMES = ["מקדמה", "עיקרי", "סיום", "תשלום מלא"];
 
+function paymentStatusBadgeClass(status) {
+    if (status === PAYMENT_STATUS.PAID) return "badge badge-paid";
+    if (status === PAYMENT_STATUS.LATE) return "badge badge-late";
+    return "badge badge-pending";
+}
+
 function paymentDisplayIndex(p) {
     const idx = PHASE_DISPLAY_ORDER.indexOf(p.phase_name);
     return idx === -1 ? 999 : idx;
@@ -179,7 +185,7 @@ function renderPaymentsSection() {
 
 function renderPaymentRow(p) {
     const isAddon = p.payment_type === "addon";
-    const lateStyle = p.status === PAYMENT_STATUS.LATE ? 'style="background:#fee2e2;"' : "";
+    const lateStyle = p.status === PAYMENT_STATUS.LATE ? 'style="background:var(--pastel-red-bg);"' : "";
     const statusOptions = PAYMENT_STATUS_OPTIONS.map(
         (s) => `<option value="${s}" ${p.status === s ? "selected" : ""}>${s}</option>`
     ).join("");
@@ -362,14 +368,14 @@ function renderPaymentsTable() {
     const arrow = (col) => (paymentsSort.column === col ? (paymentsSort.direction === "asc" ? " ▲" : " ▼") : "");
 
     const rowsHtml = rows.map((p) => {
-        const lateStyle = p.status === PAYMENT_STATUS.LATE ? 'style="background:#fee2e2;"' : "";
+        const lateStyle = p.status === PAYMENT_STATUS.LATE ? 'style="background:var(--pastel-red-bg);"' : "";
         return `
             <tr class="table-row" ${lateStyle}>
                 <td class="clickable-row" data-action="open-client-from-payment" data-client-id="${p.client_id}">${escapeHtml(globalPaymentsClientMap[p.client_id] || "-")}</td>
                 <td>${escapeHtml(p.phase_name)}${p.payment_type === "addon" ? " (תוספת)" : ""}</td>
                 <td>₪${Number(p.amount || 0).toLocaleString("he-IL")}</td>
                 <td>${p.percent != null ? p.percent + "%" : "-"}</td>
-                <td>${escapeHtml(p.status)}</td>
+                <td><span class="${paymentStatusBadgeClass(p.status)}">${escapeHtml(p.status)}</span></td>
                 <td>${p.paid_date ? formatDate(p.paid_date) : "-"}</td>
             </tr>
         `;
