@@ -45,6 +45,7 @@ function renderTracksTable() {
             <td>${escapeHtml(t.description || "-")}</td>
             <td class="actions-cell">
                 <button class="btn-icon" data-action="edit-track-row" data-id="${t.id}">עריכה</button>
+                <button class="btn-icon" data-action="delete-track-row" data-id="${t.id}" title="מחיקה">🗑</button>
             </td>
         </tr>
     `).join("");
@@ -64,11 +65,32 @@ function renderTracksTable() {
 }
 
 tracksTableContainer.addEventListener("click", (e) => {
-    const btn = e.target.closest('[data-action="edit-track-row"]');
-    if (!btn) return;
-    const track = tracksCache.find((t) => t.id === btn.dataset.id);
-    openTrackForm(track);
+    const editBtn = e.target.closest('[data-action="edit-track-row"]');
+    if (editBtn) {
+        const track = tracksCache.find((t) => t.id === editBtn.dataset.id);
+        openTrackForm(track);
+        return;
+    }
+
+    const delBtn = e.target.closest('[data-action="delete-track-row"]');
+    if (delBtn) {
+        const id = delBtn.dataset.id;
+        openConfirmModal("האם למחוק את המסלול לגמרי? הפעולה בלתי הפיכה. אם יש לקוחות המשויכים למסלול זה, המחיקה עלולה להיכשל.", async () => {
+            await deleteTrack(id);
+        }, "כן, למחוק");
+    }
 });
+
+async function deleteTrack(id) {
+    const { error } = await client.from("tracks").delete().eq("id", id);
+    if (error) {
+        showToast("לא ניתן למחוק - המסלול משויך ללקוח אחד או יותר, או שיש לו תבנית משימות. יש להסיר קודם את השיוכים.", "error");
+        return;
+    }
+    tracksCache = tracksCache.filter((t) => t.id !== id);
+    showToast("המסלול נמחק", "ok");
+    renderTracksTable();
+}
 
 newTrackBtn.addEventListener("click", () => {
     newTrackTemplateRows = [{ stage: "", task: "" }]; // איפוס טופס תבנית המשימות לכל פתיחה חדשה
