@@ -362,7 +362,7 @@ function renderCommissionTable() {
             <td>${c.deal_amount != null ? "₪" + Number(c.deal_amount).toLocaleString("he-IL") : "-"}</td>
             <td>${c.commission_percent != null ? c.commission_percent + "%" : "-"}</td>
             <td>${c.commission_amount != null ? "₪" + Number(c.commission_amount).toLocaleString("he-IL") : "-"}</td>
-            <td><span class="${c.status === COMMISSION_STATUS.PENDING ? "badge badge-open" : "badge badge-closed"}">${escapeHtml(c.status)}</span></td>
+            <td><span class="${c.status === COMMISSION_STATUS.PENDING ? "badge badge-pending" : "badge badge-paid"}">${escapeHtml(c.status)}</span></td>
         </tr>
     `).join("");
 
