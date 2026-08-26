@@ -32,7 +32,7 @@ const CLIENT_STATUSES = [
 const BALL_IN_COURT = { AVISHAG: "אבישג", CLIENT: "לקוח" };
 
 const STYLE_OPTIONS = [
-    "מודרני", "סקנדינבי", "מינימליסטי", "כפרי/רוסטיק",
+    "מודרני", "נורדי", "מינימליסטי", "כפרי",
     "בוהו", "קלאסי", "תעשייתי", "ים תיכוני",
 ];
 
@@ -73,7 +73,7 @@ function showDashboard(email) {
     loginView.classList.add("hidden");
     dashboardView.classList.remove("hidden");
     userEmailEl.textContent = email;
-    switchView("leads");
+    switchView("dashboard");
 }
 
 loginForm.addEventListener("submit", async (e) => {
@@ -104,6 +104,7 @@ function switchView(viewName) {
     document.getElementById(`${viewName}-view`).classList.remove("hidden");
     document.querySelector(`.nav-btn[data-view="${viewName}"]`).classList.add("active");
 
+    if (viewName === "dashboard") loadDashboardView();
     if (viewName === "leads") loadLeadsView();
     if (viewName === "clients") loadClientsListView();
     if (viewName === "tracks") loadTracksView();
