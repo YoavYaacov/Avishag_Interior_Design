@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@500;700&family=Assistant:wght@400;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800&display=swap');
 
 :root {
     --stone-50: #f7f5f1;
@@ -11,6 +11,23 @@
     --error: #a8583f;
     --amber: #b8863b;
     --muted-text: #7a7568;
+
+    /* פלטת פסטל עדינה - סטטוסים ודשבורד */
+    --pastel-green-bg: #e3f0e2;
+    --pastel-green-text: #4a7a4e;
+    --pastel-red-bg: #f7e2df;
+    --pastel-red-text: #b0574a;
+    --pastel-amber-bg: #f6ead9;
+    --pastel-amber-text: #a97a3a;
+    --pastel-blue-bg: #e2ecf2;
+    --pastel-blue-text: #4a708c;
+    --pastel-purple-bg: #ece3f0;
+    --pastel-purple-text: #7a5a94;
+    --pastel-gray-bg: #eeece6;
+    --pastel-gray-text: #8a8478;
+
+    --radius-soft: 10px;
+    --radius-pill: 999px;
 }
 
 * { box-sizing: border-box; }
@@ -20,7 +37,7 @@ body {
     min-height: 100vh;
     background: var(--stone-50);
     color: var(--stone-800);
-    font-family: 'Assistant', sans-serif;
+    font-family: 'Rubik', sans-serif;
     direction: rtl;
 }
 
@@ -37,7 +54,7 @@ body {
 .card {
     background: #fff;
     border: 1px solid var(--stone-100);
-    border-radius: 4px;
+    border-radius: var(--radius-soft);
     padding: 40px;
     width: 100%;
     max-width: 380px;
@@ -45,22 +62,22 @@ body {
 }
 
 h1 {
-    font-family: 'Frank Ruhl Libre', serif;
+    font-family: 'Rubik', sans-serif;
     font-weight: 700;
     font-size: 1.6rem;
     margin: 0 0 4px;
 }
 
 h2 {
-    font-family: 'Frank Ruhl Libre', serif;
+    font-family: 'Rubik', sans-serif;
     font-weight: 700;
     font-size: 1.25rem;
     margin: 0 0 4px;
 }
 
 h3 {
-    font-family: 'Frank Ruhl Libre', serif;
-    font-weight: 700;
+    font-family: 'Rubik', sans-serif;
+    font-weight: 600;
     font-size: 1.05rem;
     margin: 0;
 }
@@ -91,7 +108,7 @@ input, select, textarea {
     padding: 11px 12px;
     margin-bottom: 18px;
     border: 1px solid var(--stone-100);
-    border-radius: 3px;
+    border-radius: 8px;
     font-family: inherit;
     font-size: 0.95rem;
     background: var(--stone-50);
@@ -111,7 +128,7 @@ button {
     background: var(--sage-dark);
     color: #fff;
     border: none;
-    border-radius: 3px;
+    border-radius: 8px;
     font-family: inherit;
     font-size: 0.95rem;
     font-weight: 600;
@@ -198,6 +215,11 @@ header.top-bar h1 { font-size: 1.2rem; margin: 0; }
     padding: 0 32px;
     background: #fff;
     border-bottom: 1px solid var(--stone-100);
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    box-shadow: 0 1px 0 rgba(51, 48, 42, 0.02);
+    overflow-x: auto;
 }
 
 .nav-btn {
@@ -246,7 +268,7 @@ main {
     border-collapse: collapse;
     background: #fff;
     border: 1px solid var(--stone-100);
-    border-radius: 4px;
+    border-radius: var(--radius-soft);
     overflow: hidden;
     font-size: 0.9rem;
 }
@@ -295,15 +317,20 @@ main {
     white-space: nowrap;
 }
 
-.badge-open { background: #e7ede4; color: var(--sage-dark); }
-.badge-progress { background: #f3e6da; color: var(--amber); }
-.badge-nearing { background: #f0ddd4; color: var(--rust); }
-.badge-closed { background: var(--stone-100); color: #7a7568; }
-.badge-converted { background: #e2e9e0; color: var(--sage-dark); }
-.badge-irrelevant { background: var(--stone-100); color: #a39d8f; }
+.badge-open { background: var(--pastel-blue-bg); color: var(--pastel-blue-text); }
+.badge-progress { background: var(--pastel-amber-bg); color: var(--pastel-amber-text); }
+.badge-nearing { background: var(--pastel-purple-bg); color: var(--pastel-purple-text); }
+.badge-closed { background: var(--pastel-gray-bg); color: var(--pastel-gray-text); }
+.badge-converted { background: var(--pastel-green-bg); color: var(--pastel-green-text); }
+.badge-irrelevant { background: var(--pastel-gray-bg); color: var(--pastel-gray-text); }
 
-.badge-court-avishag { background: #e7ede4; color: var(--sage-dark); }
-.badge-court-client { background: #f0ddd4; color: var(--rust); }
+.badge-court-avishag { background: var(--pastel-blue-bg); color: var(--pastel-blue-text); }
+.badge-court-client { background: var(--pastel-amber-bg); color: var(--pastel-amber-text); }
+
+/* תגיות סטטוס תשלום/עמלה - ממתין = אדום פסטל, שולם/התקבל = ירוק פסטל, באיחור = אדום פסטל כהה מעט */
+.badge-pending { background: var(--pastel-red-bg); color: var(--pastel-red-text); }
+.badge-paid { background: var(--pastel-green-bg); color: var(--pastel-green-text); }
+.badge-late { background: #f2d3ce; color: var(--pastel-red-text); font-weight: 700; }
 
 .court-toggle {
     cursor: pointer;
@@ -327,7 +354,7 @@ main {
 
 .modal-box {
     background: #fff;
-    border-radius: 4px;
+    border-radius: var(--radius-soft);
     padding: 32px;
     width: 100%;
     max-width: 480px;
@@ -346,19 +373,24 @@ main {
 .detail-header {
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: 14px;
     margin-bottom: 24px;
     flex-wrap: wrap;
 }
 
-.detail-header h2 { margin: 0; }
+/* השם מיושר לימין (ברירת המחדל ב-RTL), בקו אחד עם שולי המלבנים המתקפלים למטה */
+.detail-header h2 { margin: 0; font-size: 1.55rem; order: 1; }
+
+/* כפתור החזרה עובר לצד השמאלי של המסך */
+.detail-header .back-to-clients-btn { order: 2; }
 
 .detail-section {
     background: #fff;
     border: 1px solid var(--stone-100);
-    border-radius: 4px;
-    padding: 24px;
-    margin-bottom: 16px;
+    border-radius: var(--radius-soft);
+    padding: 18px 20px;
+    margin-bottom: 14px;
 }
 
 .muted-section { background: var(--stone-50); }
@@ -394,8 +426,8 @@ main {
 /* ---------- רכיבי טופס פרטי הבית ---------- */
 
 .pill-row {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
     gap: 8px;
     margin-bottom: 18px;
 }
@@ -405,11 +437,11 @@ main {
     align-items: center;
     gap: 6px;
     border: 1px solid var(--stone-100);
-    border-radius: 999px;
-    padding: 6px 14px;
+    border-radius: 8px;
+    padding: 7px 12px;
     font-size: 0.85rem;
     background: var(--stone-50);
-    width: auto;
+    width: 100%;
     margin: 0;
 }
 
@@ -483,15 +515,16 @@ input.switch:checked::before {
 }
 
 .chip {
-    display: inline-flex;
+    display: flex;
     align-items: center;
+    justify-content: center;
     border: 1px solid var(--stone-100);
-    border-radius: 999px;
-    padding: 7px 16px;
+    border-radius: 8px;
+    padding: 7px 12px;
     font-size: 0.85rem;
     cursor: pointer;
     background: #fff;
-    width: auto;
+    width: 100%;
     margin: 0;
 }
 
@@ -916,4 +949,96 @@ input.switch:checked::before {
     padding: 6px 8px;
     font-size: 0.88rem;
     border-radius: 3px;
+}
+
+/* ============================================================
+   דשבורד (שלב 11) - כרטיסי KPI בגווני פסטל עדינים
+   ============================================================ */
+
+.kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 14px;
+    margin-bottom: 24px;
+}
+
+.kpi-card {
+    border-radius: var(--radius-soft);
+    padding: 18px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    border: 1px solid rgba(51, 48, 42, 0.05);
+}
+
+.kpi-card .kpi-label {
+    font-size: 0.82rem;
+    font-weight: 600;
+    opacity: 0.85;
+}
+
+.kpi-card .kpi-value {
+    font-size: 1.6rem;
+    font-weight: 700;
+    font-family: 'Rubik', sans-serif;
+}
+
+.kpi-card .kpi-sub {
+    font-size: 0.78rem;
+    opacity: 0.75;
+}
+
+.kpi-blue { background: var(--pastel-blue-bg); color: var(--pastel-blue-text); }
+.kpi-green { background: var(--pastel-green-bg); color: var(--pastel-green-text); }
+.kpi-red { background: var(--pastel-red-bg); color: var(--pastel-red-text); }
+.kpi-amber { background: var(--pastel-amber-bg); color: var(--pastel-amber-text); }
+.kpi-purple { background: var(--pastel-purple-bg); color: var(--pastel-purple-text); }
+.kpi-gray { background: var(--pastel-gray-bg); color: var(--pastel-gray-text); }
+
+.dashboard-section {
+    background: #fff;
+    border: 1px solid var(--stone-100);
+    border-radius: var(--radius-soft);
+    padding: 18px 20px;
+    margin-bottom: 16px;
+}
+
+.status-breakdown-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--stone-50);
+    font-size: 0.88rem;
+}
+
+.status-breakdown-row:last-child { border-bottom: none; }
+
+.status-breakdown-bar-track {
+    flex: 1;
+    height: 8px;
+    background: var(--stone-50);
+    border-radius: var(--radius-pill);
+    overflow: hidden;
+}
+
+.status-breakdown-bar-fill {
+    height: 100%;
+    background: var(--sage);
+    border-radius: var(--radius-pill);
+}
+
+.status-breakdown-count {
+    min-width: 24px;
+    text-align: left;
+    font-weight: 600;
+    color: var(--muted-text);
+}
+
+.dashboard-clickable-row {
+    cursor: pointer;
+}
+
+.dashboard-clickable-row:hover {
+    background: var(--stone-50);
 }
