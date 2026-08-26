@@ -80,6 +80,9 @@ function renderClientsTable() {
                 >${escapeHtml(c.ball_in_court)} ⇄</button>
             </td>
             <td>${formatDate(leadContactDateMap[c.id] || c.created_at)}</td>
+            <td class="actions-cell">
+                <button type="button" class="btn-icon" data-action="delete-client" data-id="${c.id}" title="מחיקה">🗑</button>
+            </td>
         </tr>
     `).join("");
 
@@ -91,6 +94,7 @@ function renderClientsTable() {
                     <th class="sortable" data-sort="status">סטטוס${arrow("status")}</th>
                     <th class="sortable" data-sort="ball_in_court">אצל מי הכדור${arrow("ball_in_court")}</th>
                     <th class="sortable" data-sort="contact_date">תאריך פנייה ראשונית${arrow("contact_date")}</th>
+                    <th></th>
                 </tr>
             </thead>
             <tbody>${rowsHtml}</tbody>
@@ -131,9 +135,29 @@ clientsTableContainer.addEventListener("click", (e) => {
         return;
     }
 
+    const delBtn = e.target.closest('[data-action="delete-client"]');
+    if (delBtn) {
+        const id = delBtn.dataset.id;
+        openConfirmModal("האם למחוק את הלקוח לגמרי מהמערכת? הפעולה בלתי הפיכה.", async () => {
+            await deleteClient(id);
+        }, "כן, למחוק");
+        return;
+    }
+
     const row = e.target.closest('[data-action="open-client"]');
     if (row) openClientDetail(row.dataset.id);
 });
+
+async function deleteClient(id) {
+    const { error } = await client.from("clients").delete().eq("id", id);
+    if (error) {
+        showToast("לא ניתן למחוק - ללקוח יש רשומות מקושרות (תשלומים/משימות/תמונות וכו'). יש להסיר אותן קודם.", "error");
+        return;
+    }
+    clientsCache = clientsCache.filter((c) => c.id !== id);
+    showToast("הלקוח נמחק", "ok");
+    renderClientsTable();
+}
 
 clientsSearchInput.addEventListener("input", (e) => {
     clientsSearchTerm = e.target.value;
@@ -190,8 +214,13 @@ const HOME_FIXED_SPACES = [
     { key: "bedroom_1", label: "חדר שינה 1" },
     { key: "bedroom_2", label: "חדר שינה 2" },
     { key: "bedroom_3", label: "חדר שינה 3" },
+    { key: "bedroom_4", label: "חדר שינה 4" },
+    { key: "bedroom_5", label: "חדר שינה 5" },
+    { key: "bedroom_6", label: "חדר שינה 6" },
+    { key: "bedroom_7", label: "חדר שינה 7" },
     { key: "parents_room", label: "חדר הורים" },
     { key: "closet_room", label: "חדר ארונות" },
+    { key: "storage", label: "מחסן" },
 ];
 
 function parseJSONField(raw, makeEmpty, wrapLegacyText) {
@@ -281,8 +310,8 @@ function renderClientDetail() {
 
     clientDetailView.innerHTML = `
         <div class="detail-header">
-            <button class="btn-ghost" data-action="back-to-clients">→ חזרה לרשימה</button>
             <h2>${escapeHtml(c.full_name)}</h2>
+            <button class="btn-ghost back-to-clients-btn" data-action="back-to-clients">← חזרה לרשימה</button>
         </div>
 
         ${renderBasicSection(c)}
@@ -486,26 +515,26 @@ function renderHomeSection(c, roomTypes, familyTraits, preferredStyle) {
             <hr class="divider" />
 
             <label class="block-label">אופי משפחתי</label>
-            <label class="toggle-row">
-                <span>חיות מחמד</span>
-                <input type="checkbox" class="switch" data-action="toggle-pets" ${homeDraft.family_traits.pets.has ? "checked" : ""} />
-            </label>
+            <div class="pill-row">
+                <label class="checkbox-pill">
+                    <input type="checkbox" data-action="toggle-pets" ${homeDraft.family_traits.pets.has ? "checked" : ""} />
+                    חיות מחמד
+                </label>
+                <label class="checkbox-pill">
+                    <input type="checkbox" data-action="toggle-kids" ${homeDraft.family_traits.kids.has ? "checked" : ""} />
+                    ילדים
+                </label>
+                <label class="checkbox-pill">
+                    <input type="checkbox" data-action="toggle-hosts" ${homeDraft.family_traits.hosts_a_lot ? "checked" : ""} />
+                    מארחים הרבה
+                </label>
+            </div>
             ${homeDraft.family_traits.pets.has ? `
                 <input type="text" id="pets-type" placeholder="איזה חיה?" value="${escapeHtml(homeDraft.family_traits.pets.type)}" data-action="pets-type" />
             ` : ""}
-
-            <label class="toggle-row">
-                <span>ילדים</span>
-                <input type="checkbox" class="switch" data-action="toggle-kids" ${homeDraft.family_traits.kids.has ? "checked" : ""} />
-            </label>
             ${homeDraft.family_traits.kids.has ? `
                 <input type="text" id="kids-ages" placeholder="גילאים" value="${escapeHtml(homeDraft.family_traits.kids.ages)}" data-action="kids-ages" />
             ` : ""}
-
-            <label class="toggle-row">
-                <span>מארחים הרבה</span>
-                <input type="checkbox" class="switch" data-action="toggle-hosts" ${homeDraft.family_traits.hosts_a_lot ? "checked" : ""} />
-            </label>
 
             <label for="family-notes">הערות נוספות על אופי המשפחה</label>
             <textarea id="family-notes" rows="2" data-action="family-notes">${escapeHtml(homeDraft.family_traits.notes)}</textarea>
